@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/spirv-d
+spirv-d.so
+spirv-d.dylib
+spirv-d.dll
+spirv-d.a
+spirv-d.lib
+spirv-d-test-*
+*.exe
+*.o
+*.obj
+*.lst

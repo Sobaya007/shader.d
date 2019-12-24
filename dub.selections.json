@@ -1,0 +1,9 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"dmd": "~master",
+		"libdparse": "0.13.1",
+		"llvm-d": "3.0.0",
+		"stdx-allocator": "2.77.5"
+	}
+}
