@@ -2,6 +2,7 @@ module spirv.spirv;
 
 import std;
 import spirv.spv;
+import spirv.constantmanager;
 import spirv.idmanager;
 import spirv.instruction;
 import spirv.typemanager;
@@ -16,6 +17,7 @@ class Spirv {
     }
 
     private IdManager _idManager;
+    private ConstantManager constantManager;
     private TypeManager typeManager;
     private CapabilityInstruction[] cis;
     private ExtensionInstruction[] eis;
@@ -27,7 +29,8 @@ class Spirv {
 
     this() {
         this._idManager = new IdManager;
-        this.typeManager = new TypeManager(_idManager);
+        this.constantManager = new ConstantManager(_idManager);
+        this.typeManager = new TypeManager(_idManager, constantManager);
         this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
     }
 
@@ -54,8 +57,9 @@ class Spirv {
             foreach (i; exis) {
                 writeInstruction(i);
             }
-            // debug instrution
+            _idManager.writeAllDeclarions(writer);
             // annotation insruction
+            constantManager.writeAllDeclarions(writer);
             typeManager.writeAllDeclarions(writer);
             foreach (f; funcs) {
                 writeInstruction(f.f);
@@ -84,5 +88,17 @@ class Spirv {
             decl.ps ~= FunctionParameterInstruction(paramType, paramId);
         }
         funcs ~= decl;
+
+        foreach (b; func.basicBlocks) {
+            foreach (inst; b.instructions) {
+                /*
+                if (inst.opcode == LLVMAlloca) {
+                    writeln(inst.opcode, ": ", inst.allocatedType);
+                } else {
+                    writeln(inst.opcode);
+                }
+                */
+            }
+        }
     }
 }

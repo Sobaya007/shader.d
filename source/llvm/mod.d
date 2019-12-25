@@ -49,11 +49,11 @@ struct Module {
         return FunctionRange(this, firstFunction.nullable);
     }
 
-    Function firstFunction() {
+    private Function firstFunction() {
         return Function(LLVMGetFirstFunction(mod));
     }
 
-    Function lastFunction() {
+    private Function lastFunction() {
         return Function(LLVMGetLastFunction(mod));
     }
 }

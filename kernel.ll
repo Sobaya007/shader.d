@@ -87,7 +87,7 @@ if:                                               ; preds = %0
   br label %endif
 
 else:                                             ; preds = %0
-  call void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @_D6kernel6color2S6shader7builtin__T6VectorTfVmi4ZQo) #3
+  call void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @_D6kernel6color2S6shader7builtin__T6VectorTfVmi4ZQo) #2
   call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp2, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 %scale) #2
   br label %endif
 
@@ -125,7 +125,7 @@ declare %"shader.builtin.Vector!(float, 4LU).Vector"* @_D6shader7builtin__T6Vect
 declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2bZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #2
 
 ; [#uses = 1]
-declare void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #3
+declare void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #2
 
 ; [#uses = 1]
 declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #2
@@ -151,10 +151,10 @@ define linkonce_odr hidden void @ldc.register_dso() {
 
 ; [#uses = 1]
 ; Function Attrs: uwtable
-declare void @_d_dso_registry(i8*) #4
+declare void @_d_dso_registry(i8*) #3
 
 ; [#uses = 1]
-declare i32 @_d_run_main(i32, i8**, i8*) #2
+declare i32 @_d_run_main(i32, i8**, i8*) #4
 
 ; [#uses = 0]
 ; Function Attrs: uwtable
@@ -165,15 +165,15 @@ define i32 @main(i32 %argc_arg, i8** %argv_arg) #0 comdat {
   store i8** %argv_arg, i8*** %argv
   %1 = load i32, i32* %argc                       ; [#uses = 1]
   %2 = load i8**, i8*** %argv                     ; [#uses = 1]
-  %3 = call i32 @_d_run_main(i32 %1, i8** %2, i8* bitcast (i32 ({ i64, { i64, i8* }* })* @_Dmain to i8*)) #2 ; [#uses = 1]
+  %3 = call i32 @_d_run_main(i32 %1, i8** %2, i8* bitcast (i32 ({ i64, { i64, i8* }* })* @_Dmain to i8*)) #4 ; [#uses = 1]
   ret i32 %3
 }
 
 attributes #0 = { uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
 attributes #1 = { argmemonly nounwind }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
-attributes #3 = { "extend"="GLSL.std.450:Sqrt" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
-attributes #4 = { uwtable }
+attributes #2 = { "extend"="GLSL.std.450:Sqrt" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
+attributes #3 = { uwtable }
+attributes #4 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
 
 !llvm.ldc.typeinfo._D19TypeInfo_S6kernel1S6__initZ = !{!0}
 !llvm.ldc.typeinfo._D27TypeInfo_S6kernel9BlockName6__initZ = !{!1}

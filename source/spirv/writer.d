@@ -2,6 +2,7 @@ module spirv.writer;
 
 import std;
 import spirv.instruction;
+import spirv.idmanager;
 import spirv.spv;
 
 class Writer {
@@ -9,6 +10,14 @@ class Writer {
 
     ubyte[] data() {
         return _data;
+    }
+
+    void writeWord(float f) {
+        debug auto sizeBefore = _data.length;
+        debug scope (exit) assert(_data.length == sizeBefore + 4);
+
+        float[] x = [f];
+        _data ~= cast(ubyte[])(x);
     }
 
     void writeWord(uint i) {
@@ -52,6 +61,10 @@ class Writer {
         void writeLocal(T)(T t) {
             static if (is(T : uint)) {
                 writeWord(t);
+            } else static if (is(T : float)) {
+                writeWord(t);
+            } else static if (is(T : Id)) {
+                writeWord(t);
             } else static if (is(T == string)) {
                 writeString(t);
             } else static if (is(T == E[], E)) {
@@ -72,6 +85,10 @@ class Writer {
 
         ushort wc(T)(T t) {
             static if (is(T : uint)) {
+                return 1;
+            } else static if (is(T : float)) {
+                return 1;
+            } else static if (is(T : Id)){
                 return 1;
             } else static if (is(T == string)) {
                 return cast(ushort)(t.length/4 + 1);

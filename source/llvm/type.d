@@ -98,4 +98,32 @@ struct Type {
     {
         return LLVMGetVectorSize(type);
     }
+
+    static Type getIntegerType(size_t sz)() {
+        static if (sz == 1) {
+            return Type(LLVMInt1Type());
+        } else static if (sz == 8) {
+            return Type(LLVMInt8Type());
+        } else static if (sz == 16) {
+            return Type(LLVMInt16Type());
+        } else static if (sz == 32) {
+            return Type(LLVMInt32Type());
+        } else static if (sz == 64) {
+            return Type(LLVMInt64Type());
+        } else {
+            static assert(false);
+        }
+    }
+
+    static Type getFloatType(size_t sz)() {
+        static if (sz == 16) {
+            return Type(LLVMHalfType());
+        } else static if (sz == 32) {
+            return Type(LLVMFloatType());
+        } else static if (sz == 64) {
+            return Type(LLVMDoubleType());
+        } else {
+            static assert(false);
+        }
+    }
 }

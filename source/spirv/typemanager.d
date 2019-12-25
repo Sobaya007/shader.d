@@ -1,6 +1,7 @@
 module spirv.typemanager;
 
 import std;
+import spirv.constantmanager;
 import spirv.spv;
 import spirv.idmanager;
 import spirv.instruction;
@@ -31,11 +32,13 @@ alias TypeInstruction = Algebraic!(TypeInstructions);
 class TypeManager {
 
     private IdManager idManager;
+    private ConstantManager constantManager;
     private Id[string] types;
     private TypeInstruction[] instructions;
 
-    this(IdManager idManager) {
+    this(IdManager idManager, ConstantManager constantManager) {
         this.idManager = idManager;
+        this.constantManager = constantManager;
     }
 
     Id requestType(Type type) {
@@ -68,6 +71,7 @@ class TypeManager {
                      requestType(type.returnType),
                      type.paramTypes.map!(p => requestType(p)).array);
             case LLVMStructTypeKind:
+                if (isBuiltin(name)) return newBuiltinType(name);
                 return newType!(TypeStructInstruction)
                     (name,
                      type.memberTypes.map!(p => requestType(p)).array);
@@ -112,5 +116,39 @@ class TypeManager {
         types[name] = id;
         instructions ~= TypeInstruction(Instruction(id, args));
         return id;
+    }
+
+    private bool isBuiltin(string name) {
+        // TODO: more strict algorithm
+        if (auto r = name.matchAll(ctRegex!`%"(.*)".*`)) {
+            auto n = r.array.front[1];
+            if (auto r2 = n.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Id newBuiltinType(string name) {
+        Id id = idManager.requestId(name);
+        types[name] = id;
+        if (auto r = name.matchAll(ctRegex!`%"(.*)".*`)) {
+            auto n = r.array.front[1];
+            if (auto r2 = n.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`)) {
+                auto tmp = r2.array.front;
+                Id elementType = requestType(getType(tmp[1]));
+                uint num = tmp[2].to!uint;
+                instructions ~= TypeInstruction(TypeVectorInstruction(id, elementType, num));
+                return id;
+            }
+        }
+        assert(false);
+    }
+
+    private Type getType(string name) {
+        if (name == "float") {
+            return Type.getFloatType!(32);
+        }
+        assert(false);
     }
 }

@@ -21,6 +21,7 @@ class SpirvCompiler {
         auto spirv = new Spirv;
 
         foreach (func; mod.functions) {
+            if (func.attributes.canFind!(a => a.isString && a.kindAsString == "extend")) continue;
             spirv.addFunction(func);
         }
 

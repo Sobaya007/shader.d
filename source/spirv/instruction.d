@@ -185,3 +185,16 @@ struct ConstantCompositeInstruction(T) {
     Id id;
     T value;
 }
+
+struct NameInstruction {
+    enum op = Op.OpName;
+    Id target;
+    string name;
+}
+
+struct MemberNameInstruction {
+    enum op = Op.OpMemberName;
+    Id type;
+    uint memberIndex;
+    string name;
+}

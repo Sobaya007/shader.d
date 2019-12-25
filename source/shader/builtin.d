@@ -11,9 +11,12 @@ llvmAttr extendedFromGLSL(string name) {
 }
 
 struct Vector(T, size_t N) {
-    this(T[N] e...);
+    @extendedFromGLSL("Sqrt")
+        this(T[N] e...);
 
-    Vector opBinary(string op)(Vector);
+    @extendedFromGLSL("Sqrt")
+        Vector opBinary(string op)(Vector);
+    @extendedFromGLSL("Sqrt")
     void opOpAssign(string op)(Vector);
 }
 

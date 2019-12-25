@@ -4,6 +4,7 @@ mixin template ImplValue(alias mem) {
 
     import llvm.attr;
     import llvm.type;
+    import llvm.operand;
 
     string name() {
         size_t len;
@@ -32,5 +33,18 @@ mixin template ImplValue(alias mem) {
 
     Type type() {
         return Type(LLVMTypeOf(mem));
+    }
+
+    string toString() {
+        return LLVMPrintValueToString(mem).fromStringz.to!string;
+    }
+
+    Operand[] operands() {
+        auto cnt = LLVMGetNumOperands(mem);
+        auto res = new Operand[cnt];
+        foreach (i; 0..cnt) {
+            res[i] = Operand(LLVMGetOperand(mem, i));
+        }
+        return res;
     }
 }
