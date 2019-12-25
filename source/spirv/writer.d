@@ -49,20 +49,20 @@ class Writer {
         writeHalfWord(cast(ushort)i.op);
         writeHalfWord(wc);
 
-        void write(T)(T t) {
+        void writeLocal(T)(T t) {
             static if (is(T : uint)) {
                 writeWord(t);
             } else static if (is(T == string)) {
                 writeString(t);
             } else static if (is(T == E[], E)) {
-                foreach (e; t) write(e);
+                foreach (e; t) writeLocal(e);
             } else {
                 static assert(false);
             }
         }
         static foreach (mem; __traits(allMembers, Instruction)) {
             static if (mem != "op") {
-                write(__traits(getMember, i, mem));
+                writeLocal(__traits(getMember, i, mem));
             }
         }
     }

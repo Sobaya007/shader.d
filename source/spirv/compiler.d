@@ -19,6 +19,11 @@ class SpirvCompiler {
 
     Spirv compile(Module mod) {
         auto spirv = new Spirv;
+
+        foreach (func; mod.functions) {
+            spirv.addFunction(func);
+        }
+
         return spirv;
     }
 }

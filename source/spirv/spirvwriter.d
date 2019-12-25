@@ -22,7 +22,7 @@ class SpirvWriter {
             writeWord(GeneratorMagicNumber);
             writeWord(spirv.idManager.maxID + 1);
             writeWord(0); // reserved area
-            spirv.instructionManager.write(writer);
+            spirv.write(writer);
             return writer.data;
         }
     }

@@ -12,12 +12,6 @@ void main() {
     compileToBC("kernel.d");
 
     auto mod = Module.readBC("kernel.bc", "buffername");
-    foreach (func; mod.functions) {
-        if (func.attributes.canFind!(a => a.isString && a.kindAsString == "extend")) {
-            writeln(func.name);
-            writeln(func.attributes.filter!(a => a.isString && a.kindAsString == "extend"));
-        }
-    }
 
     auto compiler = new SpirvCompiler;
     auto spirv = compiler.compile(mod);

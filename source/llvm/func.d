@@ -3,32 +3,22 @@ module llvm.func;
 import std;
 import llvm;
 import llvm.attr;
+import llvm.type;
+import llvm.var;
+import llvm.value;
 
 struct Function {
     package LLVMValueRef func;
 
-    string name() {
-        size_t len;
-        auto res = LLVMGetValueName2(func, &len);
-        return res[0..len].to!string;
-    }
+    mixin ImplValue!(func);
 
-    auto attributes() {
-        return getAttributes(LLVMAttributeFunctionIndex);
-    }
+    auto params() {
+        auto cnt = LLVMCountParams(func);
 
-    private auto getAttributes(LLVMAttributeIndex idx) {
-        uint cnt = LLVMGetAttributeCountAtIndex(func, idx);
-        auto res = new LLVMAttributeRef[cnt];
-        LLVMGetAttributesAtIndex(func, idx, res.ptr);
-        return res.map!(a => Attribute(a));
-    }
+        auto res = new LLVMValueRef[cnt];
+        LLVMGetParams(func, res.ptr);
 
-    LLVMAttributeRef enumAttribute(LLVMAttributeIndex idx, uint kindID) {
-        return LLVMGetEnumAttributeAtIndex(func, idx, kindID);
+        return res.map!(p => Variable(p));
     }
-
-    LLVMAttributeRef stringAttribute(LLVMAttributeIndex idx, string str) {
-        return LLVMGetStringAttributeAtIndex(func, idx, str.ptr, cast(uint)str.length);
-    }
+    
 }
