@@ -8,14 +8,21 @@ import spirv.idmanager;
 import spirv.instruction;
 import spirv.writer;
 import llvm;
+import llvm.inst;
 import llvm.type;
 import llvm.func;
+
+alias BodyInstructions = AliasSeq!(
+    LabelInstruction,
+);
+alias BodyInstruction = Algebraic!(BodyInstructions);
 
 class FunctionManager {
 
     struct Fn {
         FunctionInstruction decl;
         FunctionParameterInstruction[] ps;
+        BodyInstruction[] bs;
         FunctionEndInstruction end;
         EntryPoint ep;
     }
@@ -48,9 +55,17 @@ class FunctionManager {
             fn.ps ~= FunctionParameterInstruction(paramType, paramId);
         }
 
+        addLabel(fn, "start of " ~ func.name);
+        foreach (b; func.basicBlocks) {
+            foreach (i; b.instructions) {
+                add(fn, i);
+            }
+        }
+
         if (func.name == "main") {
             // TODO: determine ExecutionModel via UDA
             auto e = entryPointManager.addEntryPoint(funcId, ExecutionModel.Fragment);
+            // TODO: add ExecutionMode via UDA
             fn.ep = e;
         }
 
@@ -63,7 +78,25 @@ class FunctionManager {
         foreach (fn; fns) {
             writer.writeInstruction(fn.decl);
             foreach (p; fn.ps) writer.writeInstruction(p);
+body: foreach (b; fn.bs) {
+                static foreach (I; BodyInstructions) {
+                    if (auto r = b.peek!I) {
+                        writer.writeInstruction(*r);
+                        continue body;
+                    }
+                }
+                assert(false);
+            }
             writer.writeInstruction(fn.end);
         }
+    }
+
+    private Id addLabel(ref Fn fn, string name) {
+        auto id = idManager.requestId(name);
+        fn.bs ~= BodyInstruction(LabelInstruction(id));
+        return id;
+    }
+
+    private void add(ref Fn fn, Instruction i) {
     }
 }
