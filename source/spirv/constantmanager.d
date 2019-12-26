@@ -13,8 +13,7 @@ alias ConstInstructions = AliasSeq!(
     ConstantFalseInstruction,
     ConstantInstruction!(uint),
     ConstantInstruction!(float),
-    ConstantCompositeInstruction!(uint),
-    ConstantCompositeInstruction!(float),
+    ConstantCompositeInstruction,
 );
 
 alias ConstInstruction = Algebraic!(ConstInstructions);

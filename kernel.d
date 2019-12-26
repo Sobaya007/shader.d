@@ -3,13 +3,13 @@ import shader.attribute;
 import spirv.spv;
 import ldc.attributes;
 
-@(StorageClass.Input) {
-    @layout(0) vec4 color1;
-    @layout(1) vec4 multiplier;
-    @(Decoration.NoPerspective) @layout(2) vec4 color2;
+@storageClass(StorageClass.Input) {
+    vec4 color1;
+    vec4 multiplier;
+    @(Decoration.NoPerspective) vec4 color2;
 }
-@(StorageClass.Output) {
-    @layout(0) vec4 color;
+@storageClass(StorageClass.Output) {
+    vec4 color;
 }
 
 struct S {
@@ -22,8 +22,9 @@ struct BlockName {
     S s;
     bool cond;
 };
-@(Decoration.Uniform) BlockName* blockName;
+@decoration(Decoration.Uniform) BlockName* blockName;
 
+extern (C)
 void main() {
     with (blockName) {
         vec4 scale = vec4(1.0, 1.0, 2.0, 1.0);

@@ -1,7 +1,6 @@
 module spirv.typemanager;
 
 import std;
-import spirv.constantmanager;
 import spirv.spv;
 import spirv.idmanager;
 import spirv.instruction;
@@ -32,13 +31,11 @@ alias TypeInstruction = Algebraic!(TypeInstructions);
 class TypeManager {
 
     private IdManager idManager;
-    private ConstantManager constantManager;
     private Id[string] types;
     private TypeInstruction[] instructions;
 
-    this(IdManager idManager, ConstantManager constantManager) {
+    this(IdManager idManager) {
         this.idManager = idManager;
-        this.constantManager = constantManager;
     }
 
     Id requestType(Type type) {

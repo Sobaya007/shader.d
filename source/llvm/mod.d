@@ -4,6 +4,7 @@ import std;
 import std.file : fread = read;
 import llvm;
 import llvm.func;
+import llvm.var;
 
 struct Module {
 
@@ -43,7 +44,7 @@ struct Module {
                     this.func.nullify();
                     return;
                 }
-                this.func = Function(LLVMGetNextFunction(func.get().func));
+                this.func = func.get().next();
             }
         }
         return FunctionRange(this, firstFunction.nullable);
@@ -55,5 +56,38 @@ struct Module {
 
     private Function lastFunction() {
         return Function(LLVMGetLastFunction(mod));
+    }
+
+    auto globals() {
+        struct GlobalRange {
+            private Module mod;
+            private Nullable!Variable var;
+
+            Variable front() {
+                return var.get();
+            }
+
+            bool empty() {
+                return var.isNull;
+            }
+
+            void popFront() {
+                if (this.empty) return;
+                if (var.get() == mod.lastGlobal) {
+                    this.var.nullify();
+                    return;
+                }
+                this.var = var.get().next();
+            }
+        }
+        return GlobalRange(this, firstGlobal.nullable);
+    }
+
+    private Variable firstGlobal() {
+        return Variable(LLVMGetFirstGlobal(mod));
+    }
+
+    private Variable lastGlobal() {
+        return Variable(LLVMGetLastGlobal(mod));
     }
 }

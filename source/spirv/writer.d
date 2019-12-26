@@ -59,7 +59,9 @@ class Writer {
         writeHalfWord(wc);
 
         void writeLocal(T)(T t) {
-            static if (is(T : uint)) {
+            static if (isInstanceOf!(Nullable, T)) {
+                if (!t.isNull) writeWord(t.get());
+            } else static if (is(T : uint)) {
                 writeWord(t);
             } else static if (is(T : float)) {
                 writeWord(t);
@@ -84,7 +86,9 @@ class Writer {
         ushort result = 0;
 
         ushort wc(T)(T t) {
-            static if (is(T : uint)) {
+            static if (isInstanceOf!(Nullable, T)) {
+                return t.isNull ? 0 : wc(t.get());
+            } else static if (is(T : uint)) {
                 return 1;
             } else static if (is(T : float)) {
                 return 1;

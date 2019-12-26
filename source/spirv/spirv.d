@@ -6,9 +6,11 @@ import spirv.constantmanager;
 import spirv.idmanager;
 import spirv.instruction;
 import spirv.typemanager;
+import spirv.varmanager;
 import spirv.writer;
 import llvm;
 import llvm.func;
+import llvm.var;
 
 class Spirv {
     struct FunctionDeclaration {
@@ -19,6 +21,7 @@ class Spirv {
     private IdManager _idManager;
     private ConstantManager constantManager;
     private TypeManager typeManager;
+    private VarManager varManager;
     private CapabilityInstruction[] cis;
     private ExtensionInstruction[] eis;
     private ExtInstImportInstruction[] eiis;
@@ -30,7 +33,8 @@ class Spirv {
     this() {
         this._idManager = new IdManager;
         this.constantManager = new ConstantManager(_idManager);
-        this.typeManager = new TypeManager(_idManager, constantManager);
+        this.typeManager = new TypeManager(_idManager);
+        this.varManager = new VarManager(_idManager, typeManager);
         this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
     }
 
@@ -61,6 +65,7 @@ class Spirv {
             // annotation insruction
             constantManager.writeAllDeclarions(writer);
             typeManager.writeAllDeclarions(writer);
+            varManager.writeAllDeclarions(writer);
             foreach (f; funcs) {
                 writeInstruction(f.f);
                 foreach (p; f.ps) {
@@ -70,6 +75,11 @@ class Spirv {
             }
             // function definition
         }
+    }
+
+    void addVariable(Variable var) {
+        enforce(var.type.kind == LLVMPointerTypeKind);
+        varManager.requestVar(var);
     }
 
     void addFunction(Function func) {
@@ -91,13 +101,10 @@ class Spirv {
 
         foreach (b; func.basicBlocks) {
             foreach (inst; b.instructions) {
-                /*
                 if (inst.opcode == LLVMAlloca) {
-                    writeln(inst.opcode, ": ", inst.allocatedType);
+                    // writeln(inst.opcode, ": ", inst.allocatedType);
                 } else {
-                    writeln(inst.opcode);
                 }
-                */
             }
         }
     }
