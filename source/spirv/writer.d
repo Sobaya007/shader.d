@@ -60,7 +60,17 @@ class Writer {
 
         void writeLocal(T)(T t) {
             static if (isInstanceOf!(Nullable, T)) {
-                if (!t.isNull) writeWord(t.get());
+                if (!t.isNull) writeLocal(t.get());
+            } else static if (isInstanceOf!(VariantN, T)) {
+                static foreach (S; T.AllowedTypes) {
+                    if (auto r = t.peek!S) {
+                        writeLocal(*r);
+                        return;
+                    }
+                }
+                assert(false);
+            } else static if (isInstanceOf!(Tuple, T)) {
+                foreach (e; t) writeLocal(e);
             } else static if (is(T : uint)) {
                 writeWord(t);
             } else static if (is(T : float)) {
@@ -88,6 +98,17 @@ class Writer {
         ushort wc(T)(T t) {
             static if (isInstanceOf!(Nullable, T)) {
                 return t.isNull ? 0 : wc(t.get());
+            } else static if (isInstanceOf!(VariantN, T)) {
+                static foreach (S; T.AllowedTypes) {
+                    if (auto r = t.peek!S) {
+                        return wc(*r);
+                    }
+                }
+                assert(false);
+            } else static if (isInstanceOf!(Tuple, T)) {
+                ushort r = 0;
+                foreach (e; t) r += wc(e);
+                return r;
             } else static if (is(T : uint)) {
                 return 1;
             } else static if (is(T : float)) {

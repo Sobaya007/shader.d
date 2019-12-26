@@ -1,11 +1,17 @@
 module spirv.spirv;
 
 import std;
+import spirv.annotationmanager;
+import spirv.capabilitymanager;
+import spirv.entrypointmanager;
+import spirv.extensionmanager;
+import spirv.extinstimportmanager;
+import spirv.funcmanager;
 import spirv.spv;
 import spirv.idmanager;
 import spirv.instruction;
 import spirv.typeconstmanager;
-import spirv.varmanager;
+import spirv.globalvarmanager;
 import spirv.writer;
 import llvm;
 import llvm.func;
@@ -18,20 +24,26 @@ class Spirv {
     }
 
     private IdManager _idManager;
+    private CapabilityManager capabilityManager;
+    private ExtensionManager extensionManager;
+    private ExtInstImportManager extInstImportManager;
+    private EntryPointManager entryPointManager;
+    private AnnotationManager annotationManager;
     private TypeConstManager typeConstManager;
-    private VarManager varManager;
-    private CapabilityInstruction[] cis;
-    private ExtensionInstruction[] eis;
-    private ExtInstImportInstruction[] eiis;
-    private const MemoryModelInstuction mis;
-    private EntryPointInstruction[] epis;
-    private ExecutionModeInstruction[] exis;
-    private FunctionDeclaration[] funcs;
+    private FunctionManager funcManager;
+    private GlobalVarManager globalvarManager;
+    private MemoryModelInstuction mis;
 
     this() {
         this._idManager = new IdManager;
+        this.capabilityManager = new CapabilityManager;
+        this.extensionManager = new ExtensionManager;
+        this.extInstImportManager = new ExtInstImportManager(_idManager);
+        this.entryPointManager = new EntryPointManager(_idManager);
+        this.annotationManager = new AnnotationManager;
         this.typeConstManager = new TypeConstManager(_idManager);
-        this.varManager = new VarManager(_idManager, typeConstManager);
+        this.funcManager = new FunctionManager(_idManager, entryPointManager, typeConstManager);
+        this.globalvarManager = new GlobalVarManager(_idManager, typeConstManager);
         this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
     }
 
@@ -41,67 +53,26 @@ class Spirv {
 
     void write(Writer writer) const {
         with (writer) {
-            foreach (i; cis) {
-                writeInstruction(i);
-            }
-            foreach (i; eis) {
-                writeInstruction(i);
-            }
-
-            foreach (i; eiis) {
-                writeInstruction(i);
-            }
+            capabilityManager.writeAllInstructions(writer);
+            extensionManager.writeAllInstructions(writer);
+            extInstImportManager.writeAllInstructions(writer);
             writeInstruction(mis);
-            foreach (i; epis) {
-                writeInstruction(i);
-            }
-            foreach (i; exis) {
-                writeInstruction(i);
-            }
-            _idManager.writeAllDeclarions(writer);
-            // annotation insruction
-            typeConstManager.writeAllDeclarions(writer);
-            varManager.writeAllDeclarions(writer);
-            foreach (f; funcs) {
-                writeInstruction(f.f);
-                foreach (p; f.ps) {
-                    writeInstruction(p);
-                }
-                writeInstruction(FunctionEndInstruction());
-            }
-            // function definition
+            entryPointManager.writeAllInstructions(writer);
+            _idManager.writeAllInstructions(writer);
+            annotationManager.writeAllInstructions(writer);
+            typeConstManager.writeAllInstructions(writer);
+            globalvarManager.writeAllInstructions(writer);
+            funcManager.writeAllInstructions(writer);
         }
     }
 
-    void addVariable(Variable var) {
-        enforce(var.type.kind == LLVMPointerTypeKind);
-        varManager.requestVar(var);
+    void addVariable(Variable globalvar) {
+        enforce(globalvar.type.kind == LLVMPointerTypeKind);
+        globalvarManager.addGlobalVar(globalvar);
     }
 
     void addFunction(Function func) {
         enforce(func.type.kind == LLVMPointerTypeKind);
-        auto ft = func.type.elementType;
-        auto returnType = typeConstManager.requestType(ft.returnType);
-        auto funcId = _idManager.requestId(func.name);
-        auto funcType = typeConstManager.requestType(ft);
-        FunctionDeclaration decl;
-        /* TODO: Correctly handle control mask */
-        decl.f = FunctionInstruction(returnType, funcId, FunctionControlMask.MaskNone, funcType);
-
-        foreach (i, p; func.params.enumerate) {
-            auto paramType = typeConstManager.requestType(p.type);
-            auto paramId = _idManager.requestId(format!"%s.__param__%d"(func.name, i));
-            decl.ps ~= FunctionParameterInstruction(paramType, paramId);
-        }
-        funcs ~= decl;
-
-        foreach (b; func.basicBlocks) {
-            foreach (inst; b.instructions) {
-                if (inst.opcode == LLVMAlloca) {
-                    // writeln(inst.opcode, ": ", inst.allocatedType);
-                } else {
-                }
-            }
-        }
+        funcManager.addFunction(func);
     }
 }

@@ -129,7 +129,7 @@ class TypeConstManager {
         }
     }
 
-    void writeAllDeclarions(Writer writer) const {
+    void writeAllInstructions(Writer writer) const {
         foreach (i; instructions) {
             static foreach (I; TypeConstInstructions) {
                 if (auto r = i.peek!I) {

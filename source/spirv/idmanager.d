@@ -31,7 +31,13 @@ class IdManager {
         return newId;
     }
 
-    void writeAllDeclarions(Writer writer) const {
+    string getName(Id id) const {
+        return ids.byKeyValue
+            .find!(p => p.value == id)
+            .front.key;
+    }
+
+    void writeAllInstructions(Writer writer) const {
         foreach (i; instructions) {
             static foreach (I; DebugInstructions) {
                 if (auto r = i.peek!I) {
