@@ -3,6 +3,8 @@ import shader.attribute;
 import spirv.spv;
 import ldc.attributes;
 
+extern(C):
+
 @storageClass(StorageClass.Input) {
     vec4 color1;
     vec4 multiplier;
@@ -16,15 +18,14 @@ struct S {
     bool b;
     vec4[5] v;
     int i;
-};
+}
 
 struct BlockName {
     S s;
     bool cond;
-};
+}
 @decoration(Decoration.Uniform) BlockName* blockName;
 
-extern (C)
 void main() {
     with (blockName) {
         vec4 scale = vec4(1.0, 1.0, 2.0, 1.0);

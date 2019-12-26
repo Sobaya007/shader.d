@@ -14,10 +14,6 @@ struct Type {
         return LLVMTypeIsSized(type) > 0;
     }
 
-    string toString() {
-        return LLVMPrintTypeToString(type).fromStringz.to!string;
-    }
-
     /* Integer Type */
     uint widthAsInt() 
         in (kind == LLVMIntegerTypeKind)
@@ -99,6 +95,44 @@ struct Type {
         return LLVMGetVectorSize(type);
     }
 
+    string name() {
+        final switch (kind) {
+            case LLVMVoidTypeKind: return "void";
+            case LLVMHalfTypeKind: return "half";
+            case LLVMFloatTypeKind: return "float";
+            case LLVMDoubleTypeKind: return "double";
+            case LLVMX86_FP80TypeKind: return "fp80";
+            case LLVMFP128TypeKind: return "quad";
+            case LLVMPPC_FP128TypeKind: return "ppc_quad";
+            case LLVMLabelTypeKind: assert(false);
+            case LLVMIntegerTypeKind:
+                // TODO: How can I determine sign?
+                final switch (widthAsInt) {
+                    case 1: return "bit";
+                    case 8: return "byte";
+                    case 16: return "short";
+                    case 32: return "int";
+                    case 64: return "long";
+                }
+            case LLVMFunctionTypeKind:
+                return format!"%s (%s)"(returnType.name,
+                     paramTypes.map!(p => p.name).join(", "));
+            case LLVMStructTypeKind: return nameAsStruct;
+            case LLVMArrayTypeKind:
+                return format!"%s[%d]"(elementType.name, lengthAsArray);
+            case LLVMPointerTypeKind:
+                return format!"%s*"(elementType.name);
+            case LLVMVectorTypeKind:
+                return format!"Vector!(%s, %d)"(elementType.name, lengthAsVector);
+            case LLVMMetadataTypeKind:
+                assert(false);
+            case LLVMX86_MMXTypeKind:
+                assert(false);
+            case LLVMTokenTypeKind:
+                assert(false);
+        }
+    }
+
     static Type getIntegerType(size_t sz)() {
         static if (sz == 1) {
             return Type(LLVMInt1Type());
@@ -125,5 +159,9 @@ struct Type {
         } else {
             static assert(false);
         }
+    }
+
+    static Type getVectorType(Type elementType, uint elementCount) {
+        return Type(LLVMVectorType(elementType.type, elementCount));
     }
 }

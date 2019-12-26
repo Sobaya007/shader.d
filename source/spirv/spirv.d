@@ -2,10 +2,9 @@ module spirv.spirv;
 
 import std;
 import spirv.spv;
-import spirv.constantmanager;
 import spirv.idmanager;
 import spirv.instruction;
-import spirv.typemanager;
+import spirv.typeconstmanager;
 import spirv.varmanager;
 import spirv.writer;
 import llvm;
@@ -19,8 +18,7 @@ class Spirv {
     }
 
     private IdManager _idManager;
-    private ConstantManager constantManager;
-    private TypeManager typeManager;
+    private TypeConstManager typeConstManager;
     private VarManager varManager;
     private CapabilityInstruction[] cis;
     private ExtensionInstruction[] eis;
@@ -32,9 +30,8 @@ class Spirv {
 
     this() {
         this._idManager = new IdManager;
-        this.constantManager = new ConstantManager(_idManager);
-        this.typeManager = new TypeManager(_idManager);
-        this.varManager = new VarManager(_idManager, typeManager);
+        this.typeConstManager = new TypeConstManager(_idManager);
+        this.varManager = new VarManager(_idManager, typeConstManager);
         this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
     }
 
@@ -63,8 +60,7 @@ class Spirv {
             }
             _idManager.writeAllDeclarions(writer);
             // annotation insruction
-            constantManager.writeAllDeclarions(writer);
-            typeManager.writeAllDeclarions(writer);
+            typeConstManager.writeAllDeclarions(writer);
             varManager.writeAllDeclarions(writer);
             foreach (f; funcs) {
                 writeInstruction(f.f);
@@ -85,15 +81,15 @@ class Spirv {
     void addFunction(Function func) {
         enforce(func.type.kind == LLVMPointerTypeKind);
         auto ft = func.type.elementType;
-        auto returnType = typeManager.requestType(ft.returnType);
+        auto returnType = typeConstManager.requestType(ft.returnType);
         auto funcId = _idManager.requestId(func.name);
-        auto funcType = typeManager.requestType(ft);
+        auto funcType = typeConstManager.requestType(ft);
         FunctionDeclaration decl;
         /* TODO: Correctly handle control mask */
         decl.f = FunctionInstruction(returnType, funcId, FunctionControlMask.MaskNone, funcType);
 
         foreach (i, p; func.params.enumerate) {
-            auto paramType = typeManager.requestType(p.type);
+            auto paramType = typeConstManager.requestType(p.type);
             auto paramId = _idManager.requestId(format!"%s.__param__%d"(func.name, i));
             decl.ps ~= FunctionParameterInstruction(paramType, paramId);
         }

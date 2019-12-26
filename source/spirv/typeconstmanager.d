@@ -1,4 +1,4 @@
-module spirv.typemanager;
+module spirv.typeconstmanager;
 
 import std;
 import spirv.spv;
@@ -28,19 +28,34 @@ alias TypeInstructions = AliasSeq!(
 
 alias TypeInstruction = Algebraic!(TypeInstructions);
 
-class TypeManager {
+alias ConstInstructions = AliasSeq!(
+    ConstantTrueInstruction,
+    ConstantFalseInstruction,
+    ConstantInstruction!(uint),
+    ConstantInstruction!(float),
+    ConstantCompositeInstruction,
+);
+
+alias ConstInstruction = Algebraic!(ConstInstructions);
+
+alias TypeConstInstructions = AliasSeq!(TypeInstructions, ConstInstructions);
+alias TypeConstInstruction = Algebraic!(TypeConstInstructions);
+
+class TypeConstManager {
 
     private IdManager idManager;
     private Id[string] types;
-    private TypeInstruction[] instructions;
+    private Id[Tuple!(string,string)] consts;
+    private TypeConstInstruction[] instructions;
 
     this(IdManager idManager) {
         this.idManager = idManager;
     }
 
     Id requestType(Type type) {
-        auto name = type.toString();
+        auto name = type.name;
         if (auto res = name in types) return *res;
+        if (isVectorStruct(type)) return requestType(convertToVector(type));
 
         // TODO: handle all kind
         final switch (type.kind) {
@@ -68,15 +83,16 @@ class TypeManager {
                      requestType(type.returnType),
                      type.paramTypes.map!(p => requestType(p)).array);
             case LLVMStructTypeKind:
-                if (isBuiltin(name)) return newBuiltinType(name);
                 return newType!(TypeStructInstruction)
                     (name,
                      type.memberTypes.map!(p => requestType(p)).array);
             case LLVMArrayTypeKind:
+                auto lenType = requestType(Type.getIntegerType!(32));
+                auto lenId = requestConstant(lenType, type.lengthAsArray);
                 return newType!(TypeArrayInstruction)
                     (name,
                      requestType(type.elementType),
-                     type.lengthAsArray);
+                     lenId);
             case LLVMPointerTypeKind:
                 // TODO: handle StorageClass correctly
                 return newType!(TypePointerInstruction)
@@ -98,9 +114,24 @@ class TypeManager {
         }
     }
 
+    Id requestConstant(T)(Id type, T value) {
+        auto name = tuple(T.stringof, value.to!string);
+        if (auto res = name in consts) return *res;
+
+        static if (is(T == bool)) {
+            if (value == true) return newConstant!(ConstantTrueInstruction)(type, name);
+            else               return newConstant!(ConstantFalseInstruction)(type, name);
+        } else static if (isScalarType!T) {
+            return newConstant!(ConstantInstruction!(T), T)(type, name, value);
+        } else {
+            // TODO: handle vector or array
+            static assert(false);
+        }
+    }
+
     void writeAllDeclarions(Writer writer) const {
         foreach (i; instructions) {
-            static foreach (I; TypeInstructions) {
+            static foreach (I; TypeConstInstructions) {
                 if (auto r = i.peek!I) {
                     writer.writeInstruction(*r);
                 }
@@ -111,35 +142,26 @@ class TypeManager {
     private Id newType(Instruction, Args...)(string name, Args args) {
         Id id = idManager.requestId(name);
         types[name] = id;
-        instructions ~= TypeInstruction(Instruction(id, args));
+        instructions ~= TypeConstInstruction(Instruction(id, args));
         return id;
     }
 
-    private bool isBuiltin(string name) {
-        // TODO: more strict algorithm
-        if (auto r = name.matchAll(ctRegex!`%"(.*)".*`)) {
-            auto n = r.array.front[1];
-            if (auto r2 = n.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`)) {
-                return true;
-            }
-        }
-        return false;
+    private Id newConstant(Instruction, Args...)(Id type, Tuple!(string,string) name, Args args) {
+        Id id = idManager.requestId(format!"(%s,%s)"(name.expand));
+        consts[name] = id;
+        instructions ~= TypeConstInstruction(Instruction(type, id, args));
+        return id;
     }
 
-    private Id newBuiltinType(string name) {
-        Id id = idManager.requestId(name);
-        types[name] = id;
-        if (auto r = name.matchAll(ctRegex!`%"(.*)".*`)) {
-            auto n = r.array.front[1];
-            if (auto r2 = n.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`)) {
-                auto tmp = r2.array.front;
-                Id elementType = requestType(getType(tmp[1]));
-                uint num = tmp[2].to!uint;
-                instructions ~= TypeInstruction(TypeVectorInstruction(id, elementType, num));
-                return id;
-            }
-        }
-        assert(false);
+    private bool isVectorStruct(Type type) {
+        return type.name.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`).front.empty is false;
+    }
+
+    private Type convertToVector(Type type) {
+        auto tmp = type.name.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`).array.front;
+        Type elementType = getType(tmp[1]);
+        uint num = tmp[2].to!uint;
+        return Type.getVectorType(elementType, num);
     }
 
     private Type getType(string name) {
