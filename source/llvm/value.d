@@ -28,4 +28,8 @@ mixin template ImplValue(alias mem) {
         }
         return res;
     }
+    
+    LLVMUseRef firstUse() {
+        return LLVMGetFirstUse(mem);
+    }
 }

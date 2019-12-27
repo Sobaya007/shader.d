@@ -53,6 +53,8 @@ class FunctionManager {
     }
 
     Id addFunction(Function func) {
+        if (func.basicBlocks.empty) return 0;
+
         auto ft = func.type.elementType;
         auto returnType = typeConstManager.requestType(ft.returnType);
         auto funcId = idManager.requestId(func.name);
@@ -116,6 +118,26 @@ body: foreach (b; fn.bs) {
     }
 
     private void addBodyInstruction(ref Fn fn, Instruction i) {
+        enum BinaryOpsMap = [
+            BinaryOps.And : Op.OpBitwiseAnd,
+            BinaryOps.Or : Op.OpBitwiseOr,
+            BinaryOps.Xor : Op.OpBitwiseXor,
+            BinaryOps.Add : Op.OpIAdd,
+            BinaryOps.FAdd : Op.OpFAdd,
+            BinaryOps.Sub : Op.OpISub,
+            BinaryOps.FSub : Op.OpFSub,
+            BinaryOps.Mul : Op.OpIMul,
+            BinaryOps.FMul : Op.OpFMul,
+            BinaryOps.UDiv : Op.OpUDiv,
+            BinaryOps.SDiv : Op.OpSDiv,
+            BinaryOps.FDiv : Op.OpFDiv,
+            BinaryOps.SRem : Op.OpSRem,
+            BinaryOps.FRem : Op.OpFRem,
+            BinaryOps.URem : Op.OpUMod,
+            BinaryOps.Shl : Op.OpShiftLeftLogical,
+            BinaryOps.LShr : Op.OpShiftRightLogical,
+            BinaryOps.RShr : Op.OpShiftRightArithmetic,
+        ];
         if (i.isStoreInst) {
             // TODO: handle memory access mask
             auto dst = requestVar(fn, i.operands[0]);
@@ -128,31 +150,11 @@ body: foreach (b; fn.bs) {
             auto id = idManager.requestId();
             add(fn, LoadInstruction(type, id, src));
         } else if (i.isBinaryOperator) {
-            enum Map = [
-                BinaryOps.And : Op.OpBitwiseAnd,
-                BinaryOps.Or : Op.OpBitwiseOr,
-                BinaryOps.Xor : Op.OpBitwiseXor,
-                BinaryOps.Add : Op.OpIAdd,
-                BinaryOps.FAdd : Op.OpFAdd,
-                BinaryOps.Sub : Op.OpISub,
-                BinaryOps.FSub : Op.OpFSub,
-                BinaryOps.Mul : Op.OpIMul,
-                BinaryOps.FMul : Op.OpFMul,
-                BinaryOps.UDiv : Op.OpUDiv,
-                BinaryOps.SDiv : Op.OpSDiv,
-                BinaryOps.FDiv : Op.OpFDiv,
-                BinaryOps.SRem : Op.OpSRem,
-                BinaryOps.FRem : Op.OpFRem,
-                BinaryOps.URem : Op.OpUMod,
-                BinaryOps.Shl : Op.OpShiftLeftLogical,
-                BinaryOps.LShr : Op.OpShiftRightLogical,
-                BinaryOps.RShr : Op.OpShiftRightArithmetic,
-            ];
             auto op0 = requestVar(fn, i.operands[0]);
             auto op1 = requestVar(fn, i.operands[1]);
             auto type = typeConstManager.requestType(i.type);
             auto id = idManager.requestId();
-            auto code = Map[i.opcodeAsBinary];
+            auto code = BinaryOpsMap[i.opcodeAsBinary];
             add(fn, BinaryOpInstrucion(code, type, id, op0, op1));
         } else if (i.isUnreachableInst) {
             add(fn, UnreachableInstruction());
@@ -210,7 +212,6 @@ body: foreach (b; fn.bs) {
         } else if (i.isSwitchInst) {
             // TODO: Not yet implemented.
         } else if (i.isBranchInst) {
-            // TODO: do
             // TODO: Handle LoopControlMask 
             // auto successor = addBlock(fn, i.successor(0));
             /*
@@ -242,6 +243,19 @@ body: foreach (b; fn.bs) {
         } else if (i.isIntrinsicInst) {
             //TODO: not implemneted yet.
         } else if (i.isCallInst) {
+            auto binaryOps = i.calledFunction.attributes
+                .filter!(a => a.isString)
+                .filter!(a => a.kindAsString == "operator")
+                .map!(a => a.valueAsString)
+                .map!(to!BinaryOps);
+            if (binaryOps.empty is false) {
+                auto code = BinaryOpsMap[binaryOps.front];
+                auto type = typeConstManager.requestType(i.operands[0].type);
+                auto id = idManager.requestId();
+                auto op0 = requestVar(fn, i.operands[0]);
+                auto op1 = requestVar(fn, i.operands[1]);
+                add(fn, BinaryOpInstrucion(code, type, id, op0, op1));
+            }
             //TODO: not implemneted yet.
         } else {
             assert(false);

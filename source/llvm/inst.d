@@ -3,6 +3,7 @@ module llvm.inst;
 import std;
 import llvm;
 import llvm.block;
+import llvm.func;
 import llvm.type;
 import llvm.operand;
 import llvm.value;
@@ -15,6 +16,7 @@ extern(C) {
     LLVMValueRef LLVMGetSelectCondition(LLVMValueRef);
     LLVMValueRef LLVMGetTrueValue(LLVMValueRef);
     LLVMValueRef LLVMGetFalseValue(LLVMValueRef);
+    LLVMValueRef LLVMGetCalledFunction(LLVMValueRef);
 }
 
 struct Instruction {
@@ -75,6 +77,10 @@ struct Instruction {
 
     Operand conditionAsBranch() {
         return Operand(LLVMGetCondition(inst));
+    }
+
+    Function calledFunction() {
+        return Function(LLVMGetCalledFunction(inst));
     }
 
     bool isAllocaInst() {

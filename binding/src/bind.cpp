@@ -1,9 +1,11 @@
 #include <llvm-c/Core.h>
 #include <llvm-c/Types.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/Support/Casting.h>
 
 using namespace llvm;
@@ -58,6 +60,10 @@ LLVMValueRef LLVMGetFalseValue(LLVMValueRef Val) {
 
 LLVMValueRef LLVMGetSwitchCondition(LLVMValueRef Val) {
     return wrap(dyn_cast<SwitchInst>(unwrap(Val))->getCondition());
+}
+
+LLVMValueRef LLVMGetCalledFunction(LLVMValueRef Val) {
+    return wrap(dyn_cast<CallInst>(unwrap(Val))->getCalledFunction());
 }
 
 }
