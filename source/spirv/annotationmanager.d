@@ -23,8 +23,8 @@ class AnnotationManager {
         instructions ~= AnnotationInstruction(DecorateInstruction(target, decoration, Nullable!DecorationExtra.init));
     }
 
-    void notifyDecoration(Id target, Decoration decoration, DecorationExtra extra) {
-        instructions ~= AnnotationInstruction(DecorateInstruction(target, decoration, extra.nullable));
+    void notifyDecoration(T)(Id target, Decoration decoration, T extra) {
+        instructions ~= AnnotationInstruction(DecorateInstruction(target, decoration, DecorationExtra(extra).nullable));
     }
 
     void writeAllInstructions(Writer writer) const {

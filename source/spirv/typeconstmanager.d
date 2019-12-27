@@ -1,6 +1,7 @@
 module spirv.typeconstmanager;
 
 import std;
+import spirv.annotationmanager;
 import spirv.spv;
 import spirv.idmanager;
 import spirv.instruction;
@@ -44,12 +45,14 @@ alias TypeConstInstruction = Algebraic!(TypeConstInstructions);
 class TypeConstManager {
 
     private IdManager idManager;
+    private AnnotationManager annotationManager;
     private Id[string] types;
     private Id[Tuple!(string,string)] consts;
     private TypeConstInstruction[] instructions;
 
-    this(IdManager idManager) {
+    this(IdManager idManager, AnnotationManager annotationManager) {
         this.idManager = idManager;
+        this.annotationManager = annotationManager;
     }
 
     Id requestType(Type type) {
@@ -89,17 +92,21 @@ class TypeConstManager {
             case LLVMArrayTypeKind:
                 auto lenType = requestType(Type.getIntegerType!(32));
                 auto lenId = requestConstant(lenType, type.lengthAsArray);
-                return newType!(TypeArrayInstruction)
+                auto result = newType!(TypeArrayInstruction)
                     (name,
                      requestType(type.elementType),
                      lenId);
+
+                // TODO: stride must be multiples of 4?
+                auto stride = (getSizeForArray(type.elementType)+3) / 4 * 4;
+                annotationManager.notifyDecoration(result, Decoration.ArrayStride, stride);
+                return result;
             case LLVMPointerTypeKind:
                 // TODO: handle StorageClass correctly
                 return newType!(TypePointerInstruction)
                     (name,
                      StorageClass.Private,
                      requestType(type.elementType));
-
             case LLVMVectorTypeKind:
                 return newType!(TypeVectorInstruction)
                     (name,
@@ -154,11 +161,11 @@ class TypeConstManager {
     }
 
     private bool isVectorStruct(Type type) {
-        return type.name.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`).front.empty is false;
+        return type.name.matchAll(ctRegex!`^shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector$`).front.empty is false;
     }
 
     private Type convertToVector(Type type) {
-        auto tmp = type.name.matchAll(ctRegex!`shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector`).array.front;
+        auto tmp = type.name.matchAll(ctRegex!`^shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector$`).array.front;
         Type elementType = getType(tmp[1]);
         uint num = tmp[2].to!uint;
         return Type.getVectorType(elementType, num);
@@ -167,6 +174,49 @@ class TypeConstManager {
     private Type getType(string name) {
         if (name == "float") {
             return Type.getFloatType!(32);
+        }
+        assert(false);
+    }
+
+    private uint getSizeForArray(Type type) {
+        // TODO: handle all kind
+        final switch (type.kind) {
+            case LLVMVoidTypeKind:
+                enforce(false, "Array of void is not allowed.");
+                break;
+            case LLVMHalfTypeKind:
+                return 16;
+            case LLVMFloatTypeKind:
+                return 32;
+            case LLVMDoubleTypeKind:
+                return 64;
+            case LLVMX86_FP80TypeKind:
+                return 80;
+            case LLVMFP128TypeKind:
+                return 128;
+            case LLVMPPC_FP128TypeKind:
+                return 128;
+            case LLVMLabelTypeKind:
+                assert(false);
+            case LLVMIntegerTypeKind:
+                return type.widthAsInt;
+            case LLVMFunctionTypeKind:
+                assert(false);
+            case LLVMStructTypeKind:
+                return type.memberTypes.map!(p => getSizeForArray(p)).sum;
+            case LLVMArrayTypeKind:
+                return getSizeForArray(type.elementType) * type.lengthAsArray;
+            case LLVMPointerTypeKind:
+                enforce(false, "Array of Pointer is not allowed.");
+                break;
+            case LLVMVectorTypeKind:
+                return getSizeForArray(type.elementType) * type.lengthAsVector;
+            case LLVMMetadataTypeKind:
+                assert(false);
+            case LLVMX86_MMXTypeKind:
+                assert(false);
+            case LLVMTokenTypeKind:
+                assert(false);
         }
         assert(false);
     }

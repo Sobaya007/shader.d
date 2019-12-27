@@ -13,3 +13,4 @@ spirv-d-test-*
 *.o
 *.obj
 *.lst
+build

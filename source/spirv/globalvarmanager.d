@@ -24,8 +24,8 @@ class GlobalVarManager {
     Id addGlobalVar(Variable var) {
         auto type = typeConstManager.requestType(var.type);
         Id id = idManager.requestId(var.name);
-        // TODO: Currenty I cannot retrive attribute from GlobalVariable via C-API of LLVM!
-        instructions ~= VariableInstruction(type, id, StorageClass.Private);
+        auto storageClass = getStorageClass(var);
+        instructions ~= VariableInstruction(type, id, storageClass);
         return id;
     }
 
@@ -33,5 +33,18 @@ class GlobalVarManager {
         foreach (i; instructions) {
             writer.writeInstruction(i);
         }
+    }
+
+    private StorageClass getStorageClass(Variable var) {
+        auto attr = var.attributes
+            .filter!(a => a.isString)
+            .filter!(a => a.kindAsString == "storageClass")
+            .map!(a => a.valueAsString)
+            .map!(a => a.to!StorageClass)
+            .array;
+        enforce(attr.length <= 1, format!"Too many storage class has detected at '%s'"(var.name));
+        enforce(attr.length == 1, format!"No storage class are specified at '%s'"(var.name));
+
+        return attr.front;
     }
 }

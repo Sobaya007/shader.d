@@ -4,4 +4,7 @@ authors "sobaya"
 copyright "Copyright © 2019, sobaya"
 license "proprietary"
 dependency "llvm-d" version="~>3.0.0"
-libs "LLVM"
+
+preBuildCommands "cd binding; mkdir build; cd build; cmake ..; make"
+lflags "-L./binding/build"
+libs "LLVM" "llvm-bind"

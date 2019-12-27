@@ -5,12 +5,12 @@ import ldc.attributes;
 
 extern(C):
 
-@storageClass(StorageClass.Input) {
+@input {
     vec4 color1;
     vec4 multiplier;
-    @(Decoration.NoPerspective) vec4 color2;
+    @noperspective vec4 color2;
 }
-@storageClass(StorageClass.Output) {
+@output {
     vec4 color;
 }
 
@@ -20,11 +20,12 @@ struct S {
     int i;
 }
 
+@block
 struct BlockName {
     S s;
     bool cond;
 }
-@decoration(Decoration.Uniform) BlockName* blockName;
+@uniform BlockName* blockName;
 
 void main() {
     with (blockName) {

@@ -21,13 +21,13 @@ $blockName = comdat any
 
 @color1 = thread_local global %"shader.builtin.Vector!(float, 4LU).Vector" zeroinitializer, comdat, align 1 #0 ; [#uses = 1]
 @multiplier = thread_local global %"shader.builtin.Vector!(float, 4LU).Vector" zeroinitializer, comdat, align 1 #0 ; [#uses = 1]
-@color2 = thread_local global %"shader.builtin.Vector!(float, 4LU).Vector" zeroinitializer, comdat, align 1 #0 ; [#uses = 1]
-@color = thread_local global %"shader.builtin.Vector!(float, 4LU).Vector" zeroinitializer, comdat, align 1 #1 ; [#uses = 1]
-@blockName = thread_local global %kernel.BlockName* null, comdat, align 8 #2 ; [#uses = 1]
+@color2 = thread_local global %"shader.builtin.Vector!(float, 4LU).Vector" zeroinitializer, comdat, align 1 #1 ; [#uses = 1]
+@color = thread_local global %"shader.builtin.Vector!(float, 4LU).Vector" zeroinitializer, comdat, align 1 #2 ; [#uses = 1]
+@blockName = thread_local global %kernel.BlockName* null, comdat, align 8 #3 ; [#uses = 1]
 
 ; [#uses = 0]
 ; Function Attrs: uwtable
-define i32 @main() #3 comdat {
+define i32 @main() #4 comdat {
   %__withSym = alloca %kernel.BlockName*, align 8 ; [#uses = 3, size/byte = 8]
   %scale = alloca %"shader.builtin.Vector!(float, 4LU).Vector", align 1 ; [#uses = 3, size/byte = 1]
   %arrayliteral = alloca [4 x float], align 4     ; [#uses = 2, size/byte = 16]
@@ -42,7 +42,7 @@ define i32 @main() #3 comdat {
   store [4 x float] [float 1.000000e+00, float 1.000000e+00, float 2.000000e+00, float 1.000000e+00], [4 x float]* %arrayliteral
   %.loadFromMemory_bitCastAddress = bitcast [4 x float]* %arrayliteral to { double, double }* ; [#uses = 1]
   %.X86_64_C_struct_rewrite_putResult = load { double, double }, { double, double }* %.loadFromMemory_bitCastAddress ; [#uses = 1]
-  %3 = call %"shader.builtin.Vector!(float, 4LU).Vector"* @_D6shader7builtin__T6VectorTfVmi4ZQo6__ctorMFNcG4fXSQByQBu__TQBpTfVmi4ZQBz(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull returned %scale, { double, double } %.X86_64_C_struct_rewrite_putResult) #5 ; [#uses = 0]
+  %3 = call %"shader.builtin.Vector!(float, 4LU).Vector"* @_D6shader7builtin__T6VectorTfVmi4ZQo6__ctorMFNcG4fXSQByQBu__TQBpTfVmi4ZQBz(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull returned %scale, { double, double } %.X86_64_C_struct_rewrite_putResult) #6 ; [#uses = 0]
   %4 = load %kernel.BlockName*, %kernel.BlockName** %__withSym ; [#uses = 1]
   %5 = getelementptr inbounds %kernel.BlockName, %kernel.BlockName* %4, i32 0, i32 1 ; [#uses = 1, type = i8*]
   %6 = load i8, i8* %5                            ; [#uses = 1]
@@ -54,12 +54,12 @@ if:                                               ; preds = %0
   %9 = getelementptr inbounds %kernel.BlockName, %kernel.BlockName* %8, i32 0, i32 0 ; [#uses = 1, type = %kernel.S*]
   %10 = getelementptr inbounds %kernel.S, %kernel.S* %9, i32 0, i32 1 ; [#uses = 1, type = [5 x %"shader.builtin.Vector!(float, 4LU).Vector"]*]
   %11 = getelementptr inbounds [5 x %"shader.builtin.Vector!(float, 4LU).Vector"], [5 x %"shader.builtin.Vector!(float, 4LU).Vector"]* %10, i32 0, i64 2 ; [#uses = 1, type = %"shader.builtin.Vector!(float, 4LU).Vector"*]
-  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2bZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull @color1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 %11) #5
+  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2bZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull @color1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 %11) #6
   br label %endif
 
 else:                                             ; preds = %0
-  call void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @color2) #5
-  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp2, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 %scale) #5
+  call void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @color2) #6
+  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1 %.sret_tmp2, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull %.sret_tmp1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 %scale) #6
   br label %endif
 
 endif:                                            ; preds = %else, %if
@@ -72,7 +72,7 @@ forcond:                                          ; preds = %forinc, %endif
   br i1 %13, label %forbody, label %endfor
 
 forbody:                                          ; preds = %forcond
-  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull @color, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @multiplier) #5
+  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull @color, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @multiplier) #6
   br label %forinc
 
 forinc:                                           ; preds = %forbody
@@ -87,29 +87,30 @@ endfor:                                           ; preds = %forcond
 
 ; [#uses = 1]
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #4
+declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #5
 
 ; [#uses = 1]
-declare %"shader.builtin.Vector!(float, 4LU).Vector"* @_D6shader7builtin__T6VectorTfVmi4ZQo6__ctorMFNcG4fXSQByQBu__TQBpTfVmi4ZQBz(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull returned, { double, double }) #5
+declare %"shader.builtin.Vector!(float, 4LU).Vector"* @_D6shader7builtin__T6VectorTfVmi4ZQo6__ctorMFNcG4fXSQByQBu__TQBpTfVmi4ZQBz(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull returned, { double, double }) #6
 
 ; [#uses = 1]
-declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2bZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #5
+declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2bZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #6
 
 ; [#uses = 1]
-declare void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #5
+declare void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #6
 
 ; [#uses = 1]
-declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #5
+declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #6
 
 ; [#uses = 1]
-declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #5
+declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #6
 
 attributes #0 = { "storageClass"="Input" }
-attributes #1 = { "storageClass"="Output" }
-attributes #2 = { "decoration"="Uniform" }
-attributes #3 = { uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
-attributes #4 = { argmemonly nounwind }
-attributes #5 = { "extend"="GLSL.std.450:Sqrt" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
+attributes #1 = { "decoration"="NoPerspective" "storageClass"="Input" }
+attributes #2 = { "storageClass"="Output" }
+attributes #3 = { "storageClass"="Uniform" }
+attributes #4 = { uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
+attributes #5 = { argmemonly nounwind }
+attributes #6 = { "extend"="GLSL.std.450:Sqrt" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "target-cpu"="x86-64" "target-features"="+cx16" "unsafe-fp-math"="false" }
 
 !llvm.linker.options = !{}
 !llvm.ident = !{!0}

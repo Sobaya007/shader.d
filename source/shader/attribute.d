@@ -11,6 +11,12 @@ llvmAttr decoration(Decoration dc) {
     return llvmAttr("decoration", toString(dc));
 }
 
+enum input = storageClass(StorageClass.Input);
+enum output = storageClass(StorageClass.Output);
+enum uniform = storageClass(StorageClass.Uniform);
+enum block = decoration(Decoration.Block);
+enum noperspective = decoration(Decoration.NoPerspective);
+
 string toString(E)(E e) {
     static foreach (e2; __traits(allMembers, E)) {
         if (e == mixin(E.stringof, ".", e2)) return e2.stringof[1..$-1];
