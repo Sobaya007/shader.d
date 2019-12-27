@@ -86,9 +86,16 @@ class TypeConstManager {
                      requestType(type.returnType),
                      type.paramTypes.map!(p => requestType(p)).array);
             case LLVMStructTypeKind:
-                return newType!(TypeStructInstruction)
+                auto result = newType!(TypeStructInstruction)
                     (name,
                      type.memberTypes.map!(p => requestType(p)).array);
+                // TODO: offset must be multiples of 4?
+                uint offset = 0;
+                foreach (i, t; type.memberTypes.enumerate) {
+                    annotationManager.notifyMemberDecoration(result, cast(uint)i, Decoration.Offset, offset);
+                    offset += getSize(t);
+                }
+                return result;
             case LLVMArrayTypeKind:
                 auto lenType = requestType(Type.getIntegerType!(32));
                 auto lenId = requestConstant(lenType, type.lengthAsArray);
@@ -96,9 +103,8 @@ class TypeConstManager {
                     (name,
                      requestType(type.elementType),
                      lenId);
-
                 // TODO: stride must be multiples of 4?
-                auto stride = (getSizeForArray(type.elementType)+3) / 4 * 4;
+                auto stride = (getSize(type.elementType)+3) / 4 * 4;
                 annotationManager.notifyDecoration(result, Decoration.ArrayStride, stride);
                 return result;
             case LLVMPointerTypeKind:
@@ -178,7 +184,7 @@ class TypeConstManager {
         assert(false);
     }
 
-    private uint getSizeForArray(Type type) {
+    private uint getSize(Type type) {
         // TODO: handle all kind
         final switch (type.kind) {
             case LLVMVoidTypeKind:
@@ -203,14 +209,14 @@ class TypeConstManager {
             case LLVMFunctionTypeKind:
                 assert(false);
             case LLVMStructTypeKind:
-                return type.memberTypes.map!(p => getSizeForArray(p)).sum;
+                return type.memberTypes.map!(p => getSize(p)).sum;
             case LLVMArrayTypeKind:
-                return getSizeForArray(type.elementType) * type.lengthAsArray;
+                return getSize(type.elementType) * type.lengthAsArray;
             case LLVMPointerTypeKind:
                 enforce(false, "Array of Pointer is not allowed.");
                 break;
             case LLVMVectorTypeKind:
-                return getSizeForArray(type.elementType) * type.lengthAsVector;
+                return getSize(type.elementType) * type.lengthAsVector;
             case LLVMMetadataTypeKind:
                 assert(false);
             case LLVMX86_MMXTypeKind:

@@ -11,6 +11,14 @@ llvmAttr decoration(Decoration dc) {
     return llvmAttr("decoration", toString(dc));
 }
 
+llvmAttr entryPoint(ExecutionModel model) {
+    return llvmAttr("entryPoint", toString(model));
+}
+
+llvmAttr execMode(ExecutionMode mode) {
+    return llvmAttr("execMode", toString(mode));
+}
+
 enum input = storageClass(StorageClass.Input);
 enum output = storageClass(StorageClass.Output);
 enum uniform = storageClass(StorageClass.Uniform);

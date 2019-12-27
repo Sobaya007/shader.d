@@ -43,7 +43,7 @@ class Spirv {
         this.annotationManager = new AnnotationManager;
         this.typeConstManager = new TypeConstManager(_idManager, annotationManager);
         this.funcManager = new FunctionManager(_idManager, entryPointManager, typeConstManager);
-        this.globalvarManager = new GlobalVarManager(_idManager, typeConstManager);
+        this.globalvarManager = new GlobalVarManager(_idManager, annotationManager, typeConstManager);
         this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
     }
 

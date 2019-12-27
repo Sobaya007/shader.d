@@ -1,6 +1,7 @@
 module spirv.globalvarmanager;
 
 import std;
+import spirv.annotationmanager;
 import spirv.spv;
 import spirv.typeconstmanager;
 import spirv.idmanager;
@@ -13,11 +14,13 @@ import llvm.var;
 class GlobalVarManager {
 
     private IdManager idManager;
+    private AnnotationManager annotationManager;
     private TypeConstManager typeConstManager;
     private VariableInstruction[] instructions;
 
-    this(IdManager idManager, TypeConstManager typeConstManager) {
+    this(IdManager idManager, AnnotationManager annotationManager, TypeConstManager typeConstManager) {
         this.idManager = idManager;
+        this.annotationManager = annotationManager;
         this.typeConstManager = typeConstManager;
     }
 
@@ -25,6 +28,8 @@ class GlobalVarManager {
         auto type = typeConstManager.requestType(var.type);
         Id id = idManager.requestId(var.name);
         auto storageClass = getStorageClass(var);
+        auto decoration = getDecoration(var);
+        decoration.each!(d => annotationManager.notifyDecoration(id, d));
         instructions ~= VariableInstruction(type, id, storageClass);
         return id;
     }
@@ -46,5 +51,13 @@ class GlobalVarManager {
         enforce(attr.length == 1, format!"No storage class are specified at '%s'"(var.name));
 
         return attr.front;
+    }
+
+    private auto getDecoration(Variable var) {
+        return var.attributes
+            .filter!(a => a.isString)
+            .filter!(a => a.kindAsString == "decoration")
+            .map!(a => a.valueAsString)
+            .map!(a => a.to!Decoration);
     }
 }

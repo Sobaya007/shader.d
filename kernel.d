@@ -27,6 +27,8 @@ struct BlockName {
 }
 @uniform BlockName* blockName;
 
+@entryPoint(ExecutionModel.Fragment)
+@execMode(ExecutionMode.OriginLowerLeft)
 void main() {
     with (blockName) {
         vec4 scale = vec4(1.0, 1.0, 2.0, 1.0);

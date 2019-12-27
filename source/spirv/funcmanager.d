@@ -62,10 +62,13 @@ class FunctionManager {
             }
         }
 
-        if (func.name == "main") {
-            // TODO: determine ExecutionModel via UDA
-            auto e = entryPointManager.addEntryPoint(funcId, ExecutionModel.Fragment);
-            // TODO: add ExecutionMode via UDA
+        auto epAttr = func.attributes.find!(a => a.isString && a.kindAsString == "entryPoint");
+        if (epAttr.empty is false) {
+            auto model = epAttr.front.valueAsString.to!ExecutionModel;
+            auto e = entryPointManager.addEntryPoint(funcId, model);
+            foreach (a; func.attributes.filter!(a => a.isString && a.kindAsString == "execMode")) {
+                e.addMode(a.valueAsString.to!ExecutionMode);
+            }
             fn.ep = e;
         }
 

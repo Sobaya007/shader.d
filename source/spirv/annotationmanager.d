@@ -27,6 +27,14 @@ class AnnotationManager {
         instructions ~= AnnotationInstruction(DecorateInstruction(target, decoration, DecorationExtra(extra).nullable));
     }
 
+    void notifyMemberDecoration(Id target, uint index, Decoration decoration) {
+        instructions ~= AnnotationInstruction(MemberDecorateInstruction(target, index, decoration, Nullable!DecorationExtra.init));
+    }
+
+    void notifyMemberDecoration(T)(Id target, uint index, Decoration decoration, T extra) {
+        instructions ~= AnnotationInstruction(MemberDecorateInstruction(target, index, decoration, DecorationExtra(extra).nullable));
+    }
+
     void writeAllInstructions(Writer writer) const {
         foreach (i; instructions) {
             static foreach (I; AnnotationInstructions) {
