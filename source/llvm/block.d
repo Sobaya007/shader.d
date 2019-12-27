@@ -5,7 +5,7 @@ import llvm;
 import llvm.inst;
 
 struct BasicBlock {
-    package LLVMBasicBlockRef block;
+    LLVMBasicBlockRef block;
 
     string name() {
         return fromStringz(LLVMGetBasicBlockName(block)).to!string;

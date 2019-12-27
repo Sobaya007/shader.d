@@ -20,3 +20,9 @@ class CapabilityManager {
         }
     }
 }
+
+struct Necessary { Capability[] caps; }
+Necessary necessary(Capability[] caps...) {
+    return Necessary(caps);
+}
+

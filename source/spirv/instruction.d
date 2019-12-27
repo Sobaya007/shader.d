@@ -1,13 +1,9 @@
 module spirv.instruction;
 
 import std;
+import spirv.capabilitymanager;
 import spirv.spv;
 import spirv.idmanager;
-
-struct Necessary { Capability[] caps; }
-private Necessary necessary(Capability[] caps...) {
-    return Necessary(caps);
-}
 
 struct NopInstruction {
     enum op = Op.OpNop;

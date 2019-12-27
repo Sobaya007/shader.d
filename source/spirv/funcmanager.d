@@ -2,11 +2,13 @@ module spirv.funcmanager;
 
 import std;
 import spirv.entrypointmanager;
+import spirv.extinstimportmanager;
 import spirv.spv;
 import spirv.typeconstmanager;
 import spirv.idmanager;
 import spirv.instruction;
 import spirv.writer;
+import shader.builtin;
 import llvm;
 import llvm.block;
 import llvm.inst;
@@ -26,29 +28,41 @@ alias BodyInstructions = AliasSeq!(
     SelectInstruction,
     BranchInstruction,
     BranchConditionalInstruction,
+    ExtInstInstruction,
 );
 alias BodyInstruction = Algebraic!(BodyInstructions);
 
 class FunctionManager {
 
-    struct Fn {
+    class Fn {
         FunctionInstruction decl;
         FunctionParameterInstruction[] ps;
         VariableInstruction[] vs;
-        BodyInstruction[] bs;
         FunctionEndInstruction end;
         EntryPoint ep;
+        Bk[LLVMBasicBlockRef] blocks;
+    }
+
+    class Bk {
+        Fn parent;
+        BasicBlock b;
+        Id id;
+        BodyInstruction[] bs;
         Id[LLVMValueRef] variables;
+
+        this(BasicBlock b, Fn f) { this.parent = f; this.b = b; }
     }
 
     private IdManager idManager;
     private EntryPointManager entryPointManager;
+    private ExtInstImportManager extInstImportManager;
     private TypeConstManager typeConstManager;
     private Fn[] fns;
 
-    this(IdManager idManager, EntryPointManager entryPointManager, TypeConstManager typeConstManager) {
+    this(IdManager idManager, EntryPointManager entryPointManager, ExtInstImportManager extInstImportManager, TypeConstManager typeConstManager) {
         this.idManager = idManager;
         this.entryPointManager = entryPointManager;
+        this.extInstImportManager = extInstImportManager;
         this.typeConstManager = typeConstManager;
     }
 
@@ -60,7 +74,7 @@ class FunctionManager {
         auto funcId = idManager.requestId(func.name);
         auto funcType = typeConstManager.requestType(ft);
 
-        Fn fn;
+        auto fn = new Fn;
 
         /* TODO: Correctly handle control mask */
         fn.decl = FunctionInstruction(returnType, funcId, FunctionControlMask.MaskNone, funcType);
@@ -72,15 +86,20 @@ class FunctionManager {
         }
 
         foreach (b; func.basicBlocks) {
-            addBlock(fn, b);
+            auto bk = new Bk(b, fn);
+            fn.blocks[b.block] = bk;
+            bk.id = idManager.requestId();
+            add(bk, LabelInstruction(bk.id));
+        }
+        foreach (b; fn.blocks) {
+            addBlock(b);
         }
 
-        auto epAttr = func.attributes.find!(a => a.isString && a.kindAsString == "entryPoint");
+        auto epAttr = getAttribute!ExecutionModel(func, "entryPoint");
         if (epAttr.empty is false) {
-            auto model = epAttr.front.valueAsString.to!ExecutionModel;
-            auto e = entryPointManager.addEntryPoint(funcId, model);
-            foreach (a; func.attributes.filter!(a => a.isString && a.kindAsString == "execMode")) {
-                e.addMode(a.valueAsString.to!ExecutionMode);
+            auto e = entryPointManager.addEntryPoint(funcId, epAttr.front);
+            foreach (mode; getAttribute!ExecutionMode(func, "execMode")) {
+                e.addMode(mode);
             }
             fn.ep = e;
         }
@@ -95,29 +114,28 @@ class FunctionManager {
             writer.writeInstruction(fn.decl);
             foreach (p; fn.ps) writer.writeInstruction(p);
             foreach (v; fn.vs) writer.writeInstruction(v);
-body: foreach (b; fn.bs) {
-                static foreach (I; BodyInstructions) {
-                    if (auto r = b.peek!I) {
-                        writer.writeInstruction(*r);
-                        continue body;
+            foreach (bk; fn.blocks) {
+body:           foreach (b; bk.bs) {
+                    static foreach (I; BodyInstructions) {
+                        if (auto r = b.peek!I) {
+                            writer.writeInstruction(*r);
+                            continue body;
+                        }
                     }
+                    assert(false);
                 }
-                assert(false);
             }
             writer.writeInstruction(fn.end);
         }
     }
 
-    private Id addBlock(ref Fn fn, BasicBlock block) {
-        auto id = idManager.requestId();
-        add(fn, LabelInstruction(id));
-        foreach (i; block.instructions) {
-            addBodyInstruction(fn, i);
+    private void addBlock(Bk bk) {
+        foreach (i; bk.b.instructions) {
+            addBodyInstruction(bk, i);
         }
-        return id;
     }
 
-    private void addBodyInstruction(ref Fn fn, Instruction i) {
+    private void addBodyInstruction(Bk bk, Instruction i) {
         enum BinaryOpsMap = [
             BinaryOps.And : Op.OpBitwiseAnd,
             BinaryOps.Or : Op.OpBitwiseOr,
@@ -140,30 +158,30 @@ body: foreach (b; fn.bs) {
         ];
         if (i.isStoreInst) {
             // TODO: handle memory access mask
-            auto dst = requestVar(fn, i.operands[0]);
-            auto src = requestVar(fn, i.operands[1]);
-            add(fn, StoreInstruction(dst, src));
+            auto dst = requestVar(bk, i.operands[0]);
+            auto src = requestVar(bk, i.operands[1]);
+            add(bk, StoreInstruction(dst, src));
         } else if (i.isLoadInst) {
             // TODO: handle memory access mask
-            auto src = requestVar(fn, i.operands[0]);
+            auto src = requestVar(bk, i.operands[0]);
             auto type = typeConstManager.requestType(i.operands[0].type);
             auto id = idManager.requestId();
-            add(fn, LoadInstruction(type, id, src));
+            add(bk, LoadInstruction(type, id, src));
         } else if (i.isBinaryOperator) {
-            auto op0 = requestVar(fn, i.operands[0]);
-            auto op1 = requestVar(fn, i.operands[1]);
+            auto op0 = requestVar(bk, i.operands[0]);
+            auto op1 = requestVar(bk, i.operands[1]);
             auto type = typeConstManager.requestType(i.type);
             auto id = idManager.requestId();
             auto code = BinaryOpsMap[i.opcodeAsBinary];
-            add(fn, BinaryOpInstrucion(code, type, id, op0, op1));
+            add(bk, BinaryOpInstrucion(code, type, id, op0, op1));
         } else if (i.isUnreachableInst) {
-            add(fn, UnreachableInstruction());
+            add(bk, UnreachableInstruction());
         } else if (i.isReturnInst) {
             auto ret = i.returnValue;
             if (ret.isNull) {
-                add(fn, ReturnInstruction());
+                add(bk, ReturnInstruction());
             } else {
-                add(fn, ReturnValueInstruction(requestVar(fn, ret.get())));
+                add(bk, ReturnValueInstruction(requestVar(bk, ret.get())));
             }
         } else if (i.isCmpInst) {
             // TODO: Handle Capability
@@ -194,36 +212,34 @@ body: foreach (b; fn.bs) {
                 Predicate.ICMP_SLE : Op.OpSLessThanEqual,
             ];
             // TODO: Handle pointer comparison
-            auto op0 = requestVar(fn, i.operands[0]);
-            auto op1 = requestVar(fn, i.operands[1]);
+            auto op0 = requestVar(bk, i.operands[0]);
+            auto op1 = requestVar(bk, i.operands[1]);
             auto pred = Map[i.predicate];
             auto type = typeConstManager.requestType(i.type);
             auto id = idManager.requestId();
-            add(fn, ComparisonInstruction(pred, type, id, op0, op1));
+            add(bk, ComparisonInstruction(pred, type, id, op0, op1));
         } else if (i.isSelectInst) {
             auto type = typeConstManager.requestType(i.type);
             auto id = idManager.requestId();
-            auto condition = requestVar(fn, i.conditionAsSelect);
-            auto trueValue = requestVar(fn, i.trueValue);
-            auto falseValue = requestVar(fn, i.falseValue);
-            add(fn, SelectInstruction(type, id, condition, trueValue, falseValue));
+            auto condition = requestVar(bk, i.conditionAsSelect);
+            auto trueValue = requestVar(bk, i.trueValue);
+            auto falseValue = requestVar(bk, i.falseValue);
+            add(bk, SelectInstruction(type, id, condition, trueValue, falseValue));
         } else if (i.isAllocaInst) {
-            addVariable(fn, i, i.inst);
+            addVariable(bk, i, i.inst);
         } else if (i.isSwitchInst) {
             // TODO: Not yet implemented.
         } else if (i.isBranchInst) {
             // TODO: Handle LoopControlMask 
-            // auto successor = addBlock(fn, i.successor(0));
-            /*
+            auto successor = bk.parent.blocks[i.successor(0).block].id;
             if (!i.isConditional) {
-                add(fn, BranchInstruction(successor));
+                add(bk, BranchInstruction(successor));
             } else {
-                auto condition = requestVar(fn, i.conditionAsBranch);
+                auto condition = requestVar(bk, i.conditionAsBranch);
                 auto trueSuccessor = successor;
-                auto falseSuccessor = addBlock(fn, i.successor(1));
-                add(fn, BranchConditionalInstruction(condition, trueSuccessor, falseSuccessor));
+                auto falseSuccessor = bk.parent.blocks[i.successor(1).block].id;
+                add(bk, BranchConditionalInstruction(condition, trueSuccessor, falseSuccessor));
             }
-            */
         } else if (i.isPHINode) {
             //TODO: not implemneted yet.
         } else if (i.isExtractValueInst) {
@@ -243,18 +259,32 @@ body: foreach (b; fn.bs) {
         } else if (i.isIntrinsicInst) {
             //TODO: not implemneted yet.
         } else if (i.isCallInst) {
-            auto binaryOps = i.calledFunction.attributes
-                .filter!(a => a.isString)
-                .filter!(a => a.kindAsString == "operator")
-                .map!(a => a.valueAsString)
-                .map!(to!BinaryOps);
+            auto binaryOps = getAttribute!BinaryOps(i.calledFunction, "operator");
             if (binaryOps.empty is false) {
                 auto code = BinaryOpsMap[binaryOps.front];
                 auto type = typeConstManager.requestType(i.operands[0].type);
                 auto id = idManager.requestId();
-                auto op0 = requestVar(fn, i.operands[0]);
-                auto op1 = requestVar(fn, i.operands[1]);
-                add(fn, BinaryOpInstrucion(code, type, id, op0, op1));
+                auto op0 = requestVar(bk, i.operands[0]);
+                auto op1 = requestVar(bk, i.operands[1]);
+                add(bk, BinaryOpInstrucion(code, type, id, op0, op1));
+                return;
+            }
+
+            auto extends = getAttribute!string(i.calledFunction, "extend");
+            if (extends.empty is false) {
+                auto tmp = extends.front.split(":");
+                auto setName = tmp[0];
+                uint instIndex = tmp[1].to!GLSLBuiltin.to!uint;
+                // auto type = typeConstManager.requestType(i.calledFunction.type.elementType.returnType);
+                // auto id = idManager.requestId();
+                // auto set = extInstImportManager.requestExtInstImport(setName);
+                // uint instIndex = 31;
+                // auto operands = i.calledFunction.operands.map!(o => requestVar(bk, o)).array;
+                auto type = typeConstManager.requestType(Type.getFloatType!(32));
+                auto id = idManager.requestId();
+                auto set = extInstImportManager.requestExtInstImport(setName);
+                auto operands = [id];
+                add(bk, ExtInstInstruction(type, id, set, instIndex, operands));
             }
             //TODO: not implemneted yet.
         } else {
@@ -263,22 +293,31 @@ body: foreach (b; fn.bs) {
 
     }
 
-    private void add(Inst)(ref Fn fn, Inst i) {
-        fn.bs ~= BodyInstruction(i);
+    private void add(Inst)(Bk bk, Inst i) {
+        bk.bs ~= BodyInstruction(i);
     }
 
-    private void addVariable(Op)(ref Fn fn, Op op, LLVMValueRef val) {
+    private void addVariable(Op)( Bk bk, Op op, LLVMValueRef val) {
         // TODO: handle initializer
         auto type = typeConstManager.requestType(op.type);
         auto id = idManager.requestId();
-        fn.variables[val] = id;
-        fn.vs ~= VariableInstruction(type, id, StorageClass.Function);
+        bk.variables[val] = id;
+        bk.parent.vs ~= VariableInstruction(type, id, StorageClass.Function);
     }
 
-    private Id requestVar(ref Fn fn, Operand op) {
-        if (op.op !in fn.variables) {
-            addVariable(fn, op, op.op);
+    private Id requestVar(Bk bk, Operand op) {
+        if (op.op !in bk.variables) {
+            addVariable(bk, op, op.op);
         }
-        return fn.variables[op.op];
+        return bk.variables[op.op];
+    }
+
+    private T[] getAttribute(T)(Function f, string kind) {
+        return f.attributes
+            .filter!(a => a.isString)
+            .filter!(a => a.kindAsString == kind)
+            .map!(a => a.valueAsString)
+            .map!(to!T)
+            .array;
     }
 }

@@ -79,7 +79,7 @@ forcond:                                          ; preds = %forinc, %endif
   br i1 %13, label %forbody, label %endfor
 
 forbody:                                          ; preds = %forcond
-  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull @color, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @multiplier) #8
+  call void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull @color, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1 @multiplier) #6
   br label %forinc
 
 forinc:                                           ; preds = %forbody
@@ -109,7 +109,7 @@ declare void @_D6shader7builtin__T4sqrtTSQzQu__T6VectorTfVmi4ZQoZQBfFQBdZQBh(%"s
 declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T8opBinaryVAyaa1_2aZQtMFSQCjQCf__TQCaTfVmi4ZQCkZQy(%"shader.builtin.Vector!(float, 4LU).Vector"* noalias sret align 1, %"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #9
 
 ; [#uses = 1]
-declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #8
+declare void @_D6shader7builtin__T6VectorTfVmi4ZQo__T10opOpAssignVAyaa1_2aZQwMFSQCmQCi__TQCdTfVmi4ZQCnZv(%"shader.builtin.Vector!(float, 4LU).Vector"* nonnull, %"shader.builtin.Vector!(float, 4LU).Vector"* byval align 1) #6
 
 ; [#uses = 0]
 ; Function Attrs: uwtable
