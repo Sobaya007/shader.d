@@ -1061,104 +1061,17 @@ struct FNegateInstruction {
     Id operand;
 }
 
-struct IAddInstruction {
-    enum op = Op.OpIAdd;
+struct BinaryOpInstrucion {
+    Op op;
     Id type;
     Id id;
     Id operand1;
     Id operand2;
 }
 
-struct FAddInstruction {
-    enum op = Op.OpFAdd;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct ISubInstruction {
-    enum op = Op.OpISub;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct FSubInstruction {
-    enum op = Op.OpFSub;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct IMulInstruction {
-    enum op = Op.OpIMul;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct FMulInstruction {
-    enum op = Op.OpFMul;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct UDivInstruction {
-    enum op = Op.OpUDiv;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct SDivInstruction {
-    enum op = Op.OpSDiv;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct FDivInstruction {
-    enum op = Op.OpFDiv;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct UModInstruction {
-    enum op = Op.OpUMod;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct SRemInstruction {
-    enum op = Op.OpSRem;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
+/*
 struct SModInstruction {
     enum op = Op.OpSMod;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct FRemInstruction {
-    enum op = Op.OpFRem;
     Id type;
     Id id;
     Id operand1;
@@ -1172,6 +1085,7 @@ struct FModInstruction {
     Id operand1;
     Id operand2;
 }
+*/
 
 struct VectorTimesScalarInstruction {
     enum op = Op.OpVectorTimesScalar;
@@ -1260,54 +1174,6 @@ struct UMulExtendedInstruction {
 
 struct SMulExtendedInstruction { 
     enum op = Op.OpSMulExtended;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct ShiftRightLogicalInstruction { 
-    enum op = Op.OpShiftRightLogical;
-    Id type;
-    Id id;
-    Id base;
-    Id shift;
-}
-
-struct ShiftRightArithmeticInstruction { 
-    enum op = Op.OpShiftRightArithmetic;
-    Id type;
-    Id id;
-    Id base;
-    Id shift;
-}
-
-struct ShiftLeftLogicalInstruction { 
-    enum op = Op.OpShiftLeftLogical;
-    Id type;
-    Id id;
-    Id base;
-    Id shift;
-}
-
-struct BitwiseOrInstruction { 
-    enum op = Op.OpBitwiseOr;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct BitwiseXorInstruction { 
-    enum op = Op.OpBitwiseXor;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct BitwiseAndInstruction { 
-    enum op = Op.OpBitwiseAnd;
     Id type;
     Id id;
     Id operand1;
@@ -1419,6 +1285,8 @@ struct SignBitSetInstruction {
     Id x;
 }
 
+/*
+TODO: Handle Capability
 @necessary(Capability.Kernel)
 struct LessOrGreaterInstruction { 
     enum op = Op.OpLessOrGreater;
@@ -1445,44 +1313,14 @@ struct UnorderedInstruction {
     Id x;
     Id y;
 }
+*/
 
-struct LogicalEqualInstruction { 
-    enum op = Op.OpLogicalEqual;
+struct ComparisonInstruction {
+    Op op;
     Id type;
     Id id;
     Id operand1;
     Id operand2;
-}
-
-struct LogicalNotEqualInstruction { 
-    enum op = Op.OpLogicalNotEqual;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct LogicalOrInstruction { 
-    enum op = Op.OpLogicalOr;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct LogicalAndInstruction { 
-    enum op = Op.OpLogicalAnd;
-    Id type;
-    Id id;
-    Id operand1;
-    Id operand2;
-}
-
-struct LogicalNotInstruction { 
-    enum op = Op.OpLogicalNot;
-    Id type;
-    Id id;
-    Id operand;
 }
 
 struct SelectInstruction { 

@@ -17,9 +17,14 @@ class IdManager {
     private Id[string] ids;
     private Id _maxId;
     private DebugInstruction[] instructions;
+    private int tmpNameSeed = 0;
     
     Id maxID() const {
         return _maxId;
+    }
+
+    Id requestId() {
+        return requestId(format!"__tmp%d"(tmpNameSeed++));
     }
 
     Id requestId(string name) {
@@ -27,7 +32,10 @@ class IdManager {
         _maxId++;
         auto newId = _maxId;
         ids[name] = newId;
-        instructions ~= DebugInstruction(NameInstruction(newId, name));
+
+        if (!name.startsWith("__")) {
+            instructions ~= DebugInstruction(NameInstruction(newId, name));
+        }
         return newId;
     }
 

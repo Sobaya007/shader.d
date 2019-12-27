@@ -5,7 +5,7 @@ import llvm;
 import llvm.value;
 
 struct Operand { 
-    package LLVMValueRef op;
+    LLVMValueRef op;
 
     mixin ImplValue!(op);
 }

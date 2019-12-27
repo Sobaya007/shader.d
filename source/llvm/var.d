@@ -9,7 +9,7 @@ extern(C) uint LLVMGetAttributeCount(LLVMValueRef);
 extern(C) void LLVMGetAttributes(LLVMValueRef, LLVMAttributeRef*);
 
 struct Variable {
-    package LLVMValueRef var;
+    LLVMValueRef var;
     mixin ImplValue!(var);
 
     Variable next() {
