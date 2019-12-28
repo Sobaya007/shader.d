@@ -66,4 +66,8 @@ LLVMValueRef LLVMGetCalledFunction(LLVMValueRef Val) {
     return wrap(dyn_cast<CallInst>(unwrap(Val))->getCalledFunction());
 }
 
+LLVMValueRef LLVMGetArgOperands(LLVMValueRef Val, unsigned i) {
+    return wrap(dyn_cast<CallInst>(unwrap(Val))->getArgOperand(i));
+}
+
 }

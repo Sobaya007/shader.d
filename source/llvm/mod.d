@@ -73,21 +73,23 @@ struct Module {
 
             void popFront() {
                 if (this.empty) return;
-                if (var.get() == mod.lastGlobal) {
+                if (var.get() == mod.lastGlobal.get()) {
                     this.var.nullify();
                     return;
                 }
                 this.var = var.get().next();
             }
         }
-        return GlobalRange(this, firstGlobal.nullable);
+        return GlobalRange(this, firstGlobal);
     }
 
-    private Variable firstGlobal() {
-        return Variable(LLVMGetFirstGlobal(mod));
+    private Nullable!Variable firstGlobal() {
+        auto v = LLVMGetFirstGlobal(mod);
+        return v ? Variable(v).nullable : Nullable!Variable.init;
     }
 
-    private Variable lastGlobal() {
-        return Variable(LLVMGetLastGlobal(mod));
+    private Nullable!Variable lastGlobal() {
+        auto v = LLVMGetLastGlobal(mod);
+        return v ? Variable(v).nullable : Nullable!Variable.init;
     }
 }

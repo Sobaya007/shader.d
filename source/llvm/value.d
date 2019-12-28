@@ -32,4 +32,8 @@ mixin template ImplValue(alias mem) {
     LLVMUseRef firstUse() {
         return LLVMGetFirstUse(mem);
     }
+
+    bool isConstant() {
+        return LLVMIsConstant(mem) > 0;
+    }
 }

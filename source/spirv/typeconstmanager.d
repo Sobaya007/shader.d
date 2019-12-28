@@ -33,7 +33,9 @@ alias ConstInstructions = AliasSeq!(
     ConstantTrueInstruction,
     ConstantFalseInstruction,
     ConstantInstruction!(uint),
+    ConstantInstruction!(ulong),
     ConstantInstruction!(float),
+    ConstantInstruction!(double),
     ConstantCompositeInstruction,
 );
 
@@ -213,8 +215,7 @@ class TypeConstManager {
             case LLVMArrayTypeKind:
                 return getSize(type.elementType) * type.lengthAsArray;
             case LLVMPointerTypeKind:
-                enforce(false, "Array of Pointer is not allowed.");
-                break;
+                return 32; // TODO: Consider more seriously
             case LLVMVectorTypeKind:
                 return getSize(type.elementType) * type.lengthAsVector;
             case LLVMMetadataTypeKind:

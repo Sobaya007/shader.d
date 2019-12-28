@@ -36,6 +36,14 @@ class Writer {
         _data ~= cast(ubyte[])(x);
     }
 
+    void writeDoubleWord(ulong l) {
+        debug auto sizeBefore = _data.length;
+        debug scope (exit) assert(_data.length == sizeBefore + 8);
+
+        ulong[] x = [l];
+        _data ~= cast(ubyte[])(x);
+    }
+
     void writeString(string str) {
         foreach (char c; str) {
             _data ~= c;
@@ -73,9 +81,9 @@ class Writer {
                 foreach (e; t) writeLocal(e);
             } else static if (is(T : uint)) {
                 writeWord(t);
+            } else static if (is(T : ulong)) {
+                writeDoubleWord(t);
             } else static if (is(T : float)) {
-                writeWord(t);
-            } else static if (is(T : Id)) {
                 writeWord(t);
             } else static if (is(T == string)) {
                 writeString(t);
@@ -111,9 +119,9 @@ class Writer {
                 return r;
             } else static if (is(T : uint)) {
                 return 1;
+            } else static if (is(T : ulong)) {
+                return 2;
             } else static if (is(T : float)) {
-                return 1;
-            } else static if (is(T : Id)){
                 return 1;
             } else static if (is(T == string)) {
                 return cast(ushort)(t.length/4 + 1);

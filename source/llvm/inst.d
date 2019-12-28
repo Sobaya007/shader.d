@@ -17,6 +17,7 @@ extern(C) {
     LLVMValueRef LLVMGetTrueValue(LLVMValueRef);
     LLVMValueRef LLVMGetFalseValue(LLVMValueRef);
     LLVMValueRef LLVMGetCalledFunction(LLVMValueRef);
+    LLVMValueRef LLVMGetArgOperands(LLVMValueRef, uint);
 }
 
 struct Instruction {
@@ -81,6 +82,29 @@ struct Instruction {
 
     Function calledFunction() {
         return Function(LLVMGetCalledFunction(inst));
+    }
+
+    Operand argOperand(uint i) {
+        return Operand(LLVMGetArgOperands(inst, i));
+    }
+
+    Operand[] argOperands() {
+        return iota(numArgOperands).map!(i => argOperand(i)).array;
+    }
+
+    ulong zExtValue() {
+        return LLVMConstIntGetZExtValue(inst);
+    }
+
+    double getConstDouble() {
+        LLVMBool losesInfo;
+        return LLVMConstRealGetDouble(inst, &losesInfo);
+    }
+
+    double getConstDouble(ref bool losesInfo) {
+        LLVMBool _losesInfo;
+        scope (exit) losesInfo = _losesInfo > 0;
+        return LLVMConstRealGetDouble(inst, &_losesInfo);
     }
 
     bool isAllocaInst() {

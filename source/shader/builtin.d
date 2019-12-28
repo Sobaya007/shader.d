@@ -1,6 +1,7 @@
 module shader.builtin;
 
 import std.traits : isInstanceOf;
+import std.meta : Repeat;
 import ldc.attributes;
 // import spirv.capabilitymanager;
 // import spirv.spv;
@@ -9,11 +10,14 @@ llvmAttr operator(string name) {
     return llvmAttr("operator", name);
 }
 
+enum composite = llvmAttr("composite", "poyo");
+
 struct Vector(T, size_t N) {
     alias ElementType = T;
     enum Size = N;
 
-    this(T[N] e...);
+    @composite
+    this(Repeat!(N,T));
 
     template opBinary(string op) {
         @operator(BinaryOperator!(T,op))

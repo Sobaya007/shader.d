@@ -16,6 +16,7 @@ class GlobalVarManager {
     private IdManager idManager;
     private AnnotationManager annotationManager;
     private TypeConstManager typeConstManager;
+    private Id[LLVMValueRef] vars;
     private VariableInstruction[] instructions;
 
     this(IdManager idManager, AnnotationManager annotationManager, TypeConstManager typeConstManager) {
@@ -25,13 +26,20 @@ class GlobalVarManager {
     }
 
     Id addGlobalVar(Variable var) {
-        auto type = typeConstManager.requestType(var.type);
+        enforce(var.type.kind == LLVMPointerTypeKind);
+        auto type = typeConstManager.requestType(var.type.elementType);
         Id id = idManager.requestId(var.name);
         auto storageClass = getStorageClass(var);
         auto decoration = getDecoration(var);
         decoration.each!(d => annotationManager.notifyDecoration(id, d));
         instructions ~= VariableInstruction(type, id, storageClass);
+        vars[var.var] = id;
         return id;
+    }
+
+    Nullable!Id getGlobalVar(LLVMValueRef val) {
+        if (auto r = val in vars) return (*r).nullable;
+        return Nullable!Id.init;
     }
 
     void writeAllInstructions(Writer writer) const {

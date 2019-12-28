@@ -3,6 +3,7 @@ module spirv.funcmanager;
 import std;
 import spirv.entrypointmanager;
 import spirv.extinstimportmanager;
+import spirv.globalvarmanager;
 import spirv.spv;
 import spirv.typeconstmanager;
 import spirv.idmanager;
@@ -29,6 +30,8 @@ alias BodyInstructions = AliasSeq!(
     BranchInstruction,
     BranchConditionalInstruction,
     ExtInstInstruction,
+    CompositeConstructInstruction,
+    AccessChainInstruction,
 );
 alias BodyInstruction = Algebraic!(BodyInstructions);
 
@@ -56,13 +59,15 @@ class FunctionManager {
     private IdManager idManager;
     private EntryPointManager entryPointManager;
     private ExtInstImportManager extInstImportManager;
+    private GlobalVarManager globalVarManager;
     private TypeConstManager typeConstManager;
     private Fn[] fns;
 
-    this(IdManager idManager, EntryPointManager entryPointManager, ExtInstImportManager extInstImportManager, TypeConstManager typeConstManager) {
+    this(IdManager idManager, EntryPointManager entryPointManager, ExtInstImportManager extInstImportManager, GlobalVarManager globalVarManager, TypeConstManager typeConstManager) {
         this.idManager = idManager;
         this.entryPointManager = entryPointManager;
         this.extInstImportManager = extInstImportManager;
+        this.globalVarManager = globalVarManager;
         this.typeConstManager = typeConstManager;
     }
 
@@ -163,8 +168,9 @@ body:           foreach (b; bk.bs) {
             add(bk, StoreInstruction(dst, src));
         } else if (i.isLoadInst) {
             // TODO: handle memory access mask
+            enforce(i.operands[0].type.kind == LLVMPointerTypeKind);
             auto src = requestVar(bk, i.operands[0]);
-            auto type = typeConstManager.requestType(i.operands[0].type);
+            auto type = typeConstManager.requestType(i.operands[0].type.elementType);
             auto id = idManager.requestId();
             add(bk, LoadInstruction(type, id, src));
         } else if (i.isBinaryOperator) {
@@ -249,7 +255,12 @@ body:           foreach (b; bk.bs) {
         } else if (i.isUnaryInstruction) {
             //TODO: not implemneted yet.
         } else if (i.isGetElementPtrInst) {
-            //TODO: not implemneted yet.
+            enforce(i.type.kind == LLVMPointerTypeKind);
+            auto type = typeConstManager.requestType(i.type.elementType);
+            auto id = idManager.requestId();
+            auto base = requestVar(bk, i.operands[0]);
+            auto indexes = i.operands[1..$].map!(op => requestVar(bk, op)).array;
+            add(bk, AccessChainInstruction(type, id, base, indexes));
         } else if (i.isExtractElementInst) {
             //TODO: not implemneted yet.
         } else if (i.isInsertElementInst) {
@@ -272,19 +283,24 @@ body:           foreach (b; bk.bs) {
 
             auto extends = getAttribute!string(i.calledFunction, "extend");
             if (extends.empty is false) {
+                // TODO: 
                 auto tmp = extends.front.split(":");
                 auto setName = tmp[0];
                 uint instIndex = tmp[1].to!GLSLBuiltin.to!uint;
-                // auto type = typeConstManager.requestType(i.calledFunction.type.elementType.returnType);
-                // auto id = idManager.requestId();
-                // auto set = extInstImportManager.requestExtInstImport(setName);
-                // uint instIndex = 31;
-                // auto operands = i.calledFunction.operands.map!(o => requestVar(bk, o)).array;
                 auto type = typeConstManager.requestType(Type.getFloatType!(32));
                 auto id = idManager.requestId();
                 auto set = extInstImportManager.requestExtInstImport(setName);
                 auto operands = [id];
                 add(bk, ExtInstInstruction(type, id, set, instIndex, operands));
+            }
+
+            auto composite = getAttribute!string(i.calledFunction, "composite");
+            if (composite.empty is false) {
+                auto type = typeConstManager.requestType(i.argOperand(0).type.elementType);
+                auto id = idManager.requestId();
+                auto args = iota(1, i.numArgOperands).map!(j => requestVar(bk, i.argOperand(j))).array;
+                add(bk, CompositeConstructInstruction(type, id, args));
+                add(bk, StoreInstruction(requestVar(bk, i.argOperand(0)), id));
             }
             //TODO: not implemneted yet.
         } else {
@@ -297,7 +313,7 @@ body:           foreach (b; bk.bs) {
         bk.bs ~= BodyInstruction(i);
     }
 
-    private void addVariable(Op)( Bk bk, Op op, LLVMValueRef val) {
+    private void addVariable(Op)(Bk bk, Op op, LLVMValueRef val) {
         // TODO: handle initializer
         auto type = typeConstManager.requestType(op.type);
         auto id = idManager.requestId();
@@ -306,10 +322,40 @@ body:           foreach (b; bk.bs) {
     }
 
     private Id requestVar(Bk bk, Operand op) {
+        auto g = globalVarManager.getGlobalVar(op.op);
+        if (g.isNull is false) return g.get();
+        if (op.isConstant) {
+            return requestConstant(op);
+        }
         if (op.op !in bk.variables) {
             addVariable(bk, op, op.op);
         }
         return bk.variables[op.op];
+    }
+
+    private Id requestConstant(Operand op) {
+        auto i = Instruction(op.op);
+        auto type = typeConstManager.requestType(i.type);
+        if (i.isConstantInt) {
+            if (i.type.widthAsInt == 32) {
+                return typeConstManager.requestConstant(type, cast(uint)i.zExtValue);
+            } else if (i.type.widthAsInt == 64) {
+                return typeConstManager.requestConstant(type, cast(ulong)i.zExtValue);
+            } else {
+                assert(false);
+            }
+        } else if (i.isConstantFP) {
+            // TODO: Handle all floating type
+            final switch (i.type.kind) {
+                // case LLVMHalfTypeKind: return typeConstManager.requestConstant(type, cast(half)i.getConstDouble);
+                case LLVMFloatTypeKind: return typeConstManager.requestConstant(type, cast(float)i.getConstDouble);
+                case LLVMDoubleTypeKind: return typeConstManager.requestConstant(type, cast(double)i.getConstDouble);
+                // case LLVMX86_FP80TypeKind: return "fp80";
+                // case LLVMFP128TypeKind: return "quad";
+                // case LLVMPPC_FP128TypeKind: return "ppc_quad";
+            }
+        }
+        assert(false);
     }
 
     private T[] getAttribute(T)(Function f, string kind) {
