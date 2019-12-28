@@ -21,6 +21,7 @@ alias BodyInstructions = AliasSeq!(
     LabelInstruction,
     StoreInstruction,
     LoadInstruction,
+    UnaryOpInstruction,
     BinaryOpInstrucion,
     UnreachableInstruction,
     ReturnInstruction,
@@ -45,6 +46,7 @@ class FunctionManager {
         FunctionEndInstruction end;
         EntryPoint ep;
         Bk[LLVMBasicBlockRef] blocks;
+        Id[LLVMValueRef] variables;
     }
 
     class Bk {
@@ -52,7 +54,6 @@ class FunctionManager {
         BasicBlock b;
         Id id;
         BodyInstruction[] bs;
-        Id[LLVMValueRef] variables;
 
         this(BasicBlock b, Fn f) { this.parent = f; this.b = b; }
     }
@@ -142,6 +143,22 @@ body:           foreach (b; bk.bs) {
     }
 
     private void addBodyInstruction(Bk bk, Instruction i) {
+        enum UnaryOpsMap = [
+            UnaryOps.FNeg: Op.OpFNegate,
+            UnaryOps.Trunc : Op.OpUConvert,
+            UnaryOps.ZExt : Op.OpUConvert,
+            UnaryOps.SExt : Op.OpSConvert,
+            UnaryOps.FPToUI : Op.OpConvertFToU,
+            UnaryOps.FPToSI : Op.OpConvertFToS,
+            UnaryOps.UIToFP : Op.OpConvertUToF,
+            UnaryOps.SIToFP : Op.OpConvertSToF,
+            UnaryOps.FPTrunc : Op.OpFConvert,
+            UnaryOps.FPExt : Op.OpFConvert,
+            UnaryOps.PtrToInt : Op.OpConvertPtrToU,
+            UnaryOps.IntToPtr : Op.OpConvertUToPtr,
+            UnaryOps.BitCast : Op.OpBitcast,
+            UnaryOps.AddrSpaceCast : Op.OpGenericCastToPtr,
+        ];
         enum BinaryOpsMap = [
             BinaryOps.And : Op.OpBitwiseAnd,
             BinaryOps.Or : Op.OpBitwiseOr,
@@ -162,6 +179,32 @@ body:           foreach (b; bk.bs) {
             BinaryOps.LShr : Op.OpShiftRightLogical,
             BinaryOps.RShr : Op.OpShiftRightArithmetic,
         ];
+        enum CmpOpsMap = [
+            Predicate.FCMP_OEQ : Op.OpFOrdEqual,
+            Predicate.FCMP_OGT : Op.OpFOrdGreaterThan,
+            Predicate.FCMP_OGE : Op.OpFOrdGreaterThanEqual,
+            Predicate.FCMP_OLT : Op.OpFOrdLessThan,
+            Predicate.FCMP_OLE : Op.OpFOrdLessThanEqual,
+            Predicate.FCMP_ONE : Op.OpFOrdNotEqual,
+            Predicate.FCMP_ORD : Op.OpOrdered,
+            Predicate.FCMP_UNO : Op.OpUnordered,
+            Predicate.FCMP_UEQ : Op.OpFUnordEqual,
+            Predicate.FCMP_UGT : Op.OpFUnordGreaterThan,
+            Predicate.FCMP_UGE : Op.OpFUnordGreaterThanEqual,
+            Predicate.FCMP_ULT : Op.OpFUnordLessThan,
+            Predicate.FCMP_ULE : Op.OpFUnordLessThanEqual,
+            Predicate.FCMP_UNE : Op.OpFUnordNotEqual,
+            Predicate.ICMP_EQ  : Op.OpIEqual,
+            Predicate.ICMP_NE  : Op.OpINotEqual,
+            Predicate.ICMP_UGT : Op.OpUGreaterThan,
+            Predicate.ICMP_UGE : Op.OpUGreaterThanEqual,
+            Predicate.ICMP_ULT : Op.OpULessThan,
+            Predicate.ICMP_ULE : Op.OpULessThanEqual,
+            Predicate.ICMP_SGT : Op.OpSGreaterThan,
+            Predicate.ICMP_SGE : Op.OpSGreaterThanEqual,
+            Predicate.ICMP_SLT : Op.OpSLessThan,
+            Predicate.ICMP_SLE : Op.OpSLessThanEqual,
+            ];
         if (i.isStoreInst) {
             // TODO: handle memory access mask
             auto dst = requestVar(bk, i.operands[0]);
@@ -192,36 +235,10 @@ body:           foreach (b; bk.bs) {
             }
         } else if (i.isCmpInst) {
             // TODO: Handle Capability
-            enum Map = [
-                Predicate.FCMP_OEQ : Op.OpFOrdEqual,
-                Predicate.FCMP_OGT : Op.OpFOrdGreaterThan,
-                Predicate.FCMP_OGE : Op.OpFOrdGreaterThanEqual,
-                Predicate.FCMP_OLT : Op.OpFOrdLessThan,
-                Predicate.FCMP_OLE : Op.OpFOrdLessThanEqual,
-                Predicate.FCMP_ONE : Op.OpFOrdNotEqual,
-                Predicate.FCMP_ORD : Op.OpOrdered,
-                Predicate.FCMP_UNO : Op.OpUnordered,
-                Predicate.FCMP_UEQ : Op.OpFUnordEqual,
-                Predicate.FCMP_UGT : Op.OpFUnordGreaterThan,
-                Predicate.FCMP_UGE : Op.OpFUnordGreaterThanEqual,
-                Predicate.FCMP_ULT : Op.OpFUnordLessThan,
-                Predicate.FCMP_ULE : Op.OpFUnordLessThanEqual,
-                Predicate.FCMP_UNE : Op.OpFUnordNotEqual,
-                Predicate.ICMP_EQ  : Op.OpIEqual,
-                Predicate.ICMP_NE  : Op.OpINotEqual,
-                Predicate.ICMP_UGT : Op.OpUGreaterThan,
-                Predicate.ICMP_UGE : Op.OpUGreaterThanEqual,
-                Predicate.ICMP_ULT : Op.OpULessThan,
-                Predicate.ICMP_ULE : Op.OpULessThanEqual,
-                Predicate.ICMP_SGT : Op.OpSGreaterThan,
-                Predicate.ICMP_SGE : Op.OpSGreaterThanEqual,
-                Predicate.ICMP_SLT : Op.OpSLessThan,
-                Predicate.ICMP_SLE : Op.OpSLessThanEqual,
-            ];
             // TODO: Handle pointer comparison
             auto op0 = requestVar(bk, i.operands[0]);
             auto op1 = requestVar(bk, i.operands[1]);
-            auto pred = Map[i.predicate];
+            auto pred = CmpOpsMap[i.predicate];
             auto type = typeConstManager.requestType(i.type);
             auto id = requestId(bk, i);
             add(bk, ComparisonInstruction(pred, type, id, op0, op1));
@@ -252,12 +269,20 @@ body:           foreach (b; bk.bs) {
             }
         } else if (i.isPHINode) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isExtractValueInst) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isInsertValueInst) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isUnaryInstruction) {
-            //TODO: not implemneted yet.
+            // TODO: Handle AddrSpaceCast
+            auto op = requestVar(bk, i.operands[0]);
+            auto type = typeConstManager.requestType(i.type);
+            auto id = requestId(bk, i);
+            auto code = BinaryOpsMap[i.opcodeAsBinary];
+            add(bk, UnaryOpInstruction(code, type, id, op));
         } else if (i.isGetElementPtrInst) {
             //enforce(Instruction(i.operands[1].op).isConstant);
             //enforce(Instruction(i.operands[1].op).zExtValue == 0);
@@ -268,12 +293,16 @@ body:           foreach (b; bk.bs) {
             add(bk, AccessChainInstruction(type, id, base, indexes));
         } else if (i.isExtractElementInst) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isInsertElementInst) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isShuffleVectorInst) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isIntrinsicInst) {
             //TODO: not implemneted yet.
+            enforce(false);
         } else if (i.isCallInst) {
             auto binaryOps = getAttribute!BinaryOps(i.calledFunction, "operator");
             if (binaryOps.empty is false) {
@@ -325,14 +354,14 @@ body:           foreach (b; bk.bs) {
         if (op.isConstant) {
             return requestConstant(op);
         }
-        enforce(op.op in bk.variables,
-            format!"\nRequested: %s\nCandidates are:%s"(op, bk.variables.keys.map!(o => Operand(cast(LLVMValueRef)(o)).to!string).array.join("\n")));
-        return bk.variables[op.op];
+        enforce(op.op in bk.parent.variables,
+            format!"\nRequested: %s\nCandidates are:%s"(op, bk.parent.variables.keys.map!(o => Operand(cast(LLVMValueRef)(o)).to!string).array.join("\n")));
+        return bk.parent.variables[op.op];
     }
 
     private Id requestId(Bk bk, Instruction i) {
         auto id = idManager.requestId();
-        bk.variables[i.inst] = id;
+        bk.parent.variables[i.inst] = id;
         return id;
     }
 

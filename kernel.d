@@ -33,12 +33,10 @@ struct BlockName {
 void main() {
     vec4 scale = vec4([1.0, 1.0, 2.0, 1.0]);
     color = color1 + blockName.s.v[2];
-    /*
     if (blockName.cond)
         color = color1 + blockName.s.v[2];
     else
         color = sqrt(color2) * scale;
     for (int i = 0; i < 4; ++i)
         color *= multiplier;
-    */
 }

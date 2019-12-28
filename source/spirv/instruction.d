@@ -856,55 +856,6 @@ struct ImageSparseReadInstruction {
     Id[] extra; // ????
 }
 
-struct ConvertFToUInstruction {
-    enum op = Op.OpConvertFToU;
-    Id type;
-    Id id;
-    Id floatValue;
-}
-
-struct ConvertFToSInstruction {
-    enum op = Op.OpConvertFToS;
-    Id type;
-    Id id;
-    Id floatValue;
-}
-
-struct ConvertSToFInstruction {
-    enum op = Op.OpConvertSToF;
-    Id type;
-    Id id;
-    Id signedValue;
-}
-
-struct ConvertUToFInstruction {
-    enum op = Op.OpConvertUToF;
-    Id type;
-    Id id;
-    Id unsignedValue;
-}
-
-struct UConvertInstruction {
-    enum op = Op.OpUConvert;
-    Id type;
-    Id id;
-    Id unsignedValue;
-}
-
-struct SConvertInstruction {
-    enum op = Op.OpSConvert;
-    Id type;
-    Id id;
-    Id signedValue;
-}
-
-struct FConvertInstruction {
-    enum op = Op.OpFConvert;
-    Id type;
-    Id id;
-    Id floatValue;
-}
-
 @necessary(Capability.Shader)
 struct QuantizeToF16Instruction {
     enum op = Op.OpQuantizeToF16;
@@ -913,6 +864,7 @@ struct QuantizeToF16Instruction {
     Id value;
 }
 
+/*
 @necessary(Capability.Addresses)
 struct ConvertPtrToUInstruction {
     enum op = Op.OpConvertPtrToU;
@@ -920,6 +872,7 @@ struct ConvertPtrToUInstruction {
     Id id;
     Id pointer;
 }
+*/
 
 @necessary(Capability.Kernel)
 struct SatConvertSToUInstruction {
@@ -937,6 +890,7 @@ struct SatConvertUToSInstruction {
     Id unsignedValue;
 }
 
+/*
 @necessary(Capability.Addresses)
 struct ConvertUToPtrInstruction {
     enum op = Op.OpConvertUToPtr;
@@ -944,6 +898,7 @@ struct ConvertUToPtrInstruction {
     Id id;
     Id integerValue;
 }
+*/
 
 @necessary(Capability.Kernel)
 struct PtrCastToGenericInstruction {
@@ -954,6 +909,7 @@ struct PtrCastToGenericInstruction {
 
 }
 
+/*
 @necessary(Capability.Kernel)
 struct GenericCastToPtrInstruction {
     enum op = Op.OpGenericCastToPtr;
@@ -961,6 +917,7 @@ struct GenericCastToPtrInstruction {
     Id id;
     Id pointer;
 }
+*/
 
 @necessary(Capability.Kernel)
 struct GenericCastToPtrExplicitInstruction {
@@ -971,12 +928,14 @@ struct GenericCastToPtrExplicitInstruction {
     StorageClass storage;
 }
 
+/*
 struct BitcastInstruction {
     enum op = Op.OpBitcast;
     Id type;
     Id id;
     Id operand;
 }
+*/
 
 struct VectorExtractDynamicInstruction {
     enum op = Op.OpVectorExtractDynamic;
@@ -1043,15 +1002,17 @@ struct TransposeInstruction {
     Id matrix;
 }
 
+/*
 struct SNegateInstruction {
     enum op = Op.OpSNegate;
     Id type;
     Id id;
     Id operand;
 }
+*/
 
-struct FNegateInstruction {
-    enum op = Op.OpFNegate;
+struct UnaryOpInstruction {
+    Op op;
     Id type;
     Id id;
     Id operand;

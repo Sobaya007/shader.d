@@ -34,8 +34,12 @@ LLVMValueRef LLVMIsABinaryOperator(LLVMValueRef Val) {
     return wrap(static_cast<Value*>(dyn_cast_or_null<BinaryOperator>(unwrap(Val))));
 }
 
-Instruction::BinaryOps LLVMGetOpcode(LLVMValueRef Val) {
+Instruction::BinaryOps LLVMGetBinaryOpcode(LLVMValueRef Val) {
     return dyn_cast<BinaryOperator>(unwrap(Val))->getOpcode();
+}
+
+unsigned LLVMGetUnaryOpcode(LLVMValueRef Val) {
+    return dyn_cast<UnaryInstruction>(unwrap(Val))->getOpcode();
 }
 
 LLVMValueRef LLVMGetReturnValue(LLVMValueRef Val) {

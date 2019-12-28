@@ -10,7 +10,8 @@ import llvm.value;
 
 extern(C) {
     LLVMValueRef LLVMIsABinaryOperator(LLVMValueRef);
-    BinaryOps LLVMGetOpcode(LLVMValueRef);
+    BinaryOps LLVMGetBinaryOpcode(LLVMValueRef);
+    uint LLVMGetUnaryOpcode(LLVMValueRef);
     LLVMValueRef LLVMGetReturnValue(LLVMValueRef);
     Predicate LLVMGetPredicate(LLVMValueRef);
     LLVMValueRef LLVMGetSelectCondition(LLVMValueRef);
@@ -43,8 +44,12 @@ struct Instruction {
         return LLVMGetNumArgOperands(inst);
     }
 
+    UnaryOps opcodeAsUnary() {
+        return LLVMGetUnaryOpcode(inst).to!UnaryOps;
+    }
+
     BinaryOps opcodeAsBinary() {
-        return LLVMGetOpcode(inst);
+        return LLVMGetBinaryOpcode(inst);
     }
 
     Nullable!Operand returnValue() {
@@ -423,6 +428,23 @@ struct Instruction {
     bool isBinaryOperator() {
         return LLVMIsABinaryOperator(inst) !is null;
     }
+}
+
+enum UnaryOps {
+    FNeg = 12,
+    Trunc = 38,
+    ZExt = 39,
+    SExt = 40,
+    FPToUI = 41,
+    FPToSI = 42,
+    UIToFP = 43,
+    SIToFP = 44,
+    FPTrunc = 45,
+    FPExt = 46,
+    PtrToInt = 47,
+    IntToPtr = 48,
+    BitCast = 49,
+    AddrSpaceCast = 50,
 }
 
 enum BinaryOps {
