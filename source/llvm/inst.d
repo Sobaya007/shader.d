@@ -35,9 +35,9 @@ struct Instruction {
 
     Type allocatedType()
         in (opcode == LLVMAlloca)
-    {
-        return Type(LLVMGetAllocatedType(inst));
-    }
+        {
+            return Type(LLVMGetAllocatedType(inst));
+        }
 
     uint numArgOperands() {
         return LLVMGetNumArgOperands(inst);
@@ -105,6 +105,10 @@ struct Instruction {
         LLVMBool _losesInfo;
         scope (exit) losesInfo = _losesInfo > 0;
         return LLVMConstRealGetDouble(inst, &_losesInfo);
+    }
+
+    Operand elementAsConstant(uint idx) {
+        return Operand(LLVMGetElementAsConstant(inst, idx));
     }
 
     bool isAllocaInst() {
@@ -388,7 +392,7 @@ struct Instruction {
         return LLVMIsAConstantStruct(inst) !is null;
     }
 
-        bool isConstantTokenNone() {
+    bool isConstantTokenNone() {
         return LLVMIsAConstantTokenNone(inst) !is null;
     }
 
@@ -396,7 +400,11 @@ struct Instruction {
         return LLVMIsAConstantVector(inst) !is null;
     }
 
-        bool isDbgVariableIntrinsic() {
+    bool isConstantDataVector() {
+        return LLVMIsAConstantDataVector(inst) !is null;
+    }
+
+    bool isDbgVariableIntrinsic() {
         return LLVMIsADbgVariableIntrinsic(inst) !is null;
     }
 

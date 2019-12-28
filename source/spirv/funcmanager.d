@@ -32,6 +32,7 @@ alias BodyInstructions = AliasSeq!(
     ExtInstInstruction,
     CompositeConstructInstruction,
     AccessChainInstruction,
+    VariableInstruction,
 );
 alias BodyInstruction = Algebraic!(BodyInstructions);
 
@@ -165,19 +166,19 @@ body:           foreach (b; bk.bs) {
             // TODO: handle memory access mask
             auto dst = requestVar(bk, i.operands[0]);
             auto src = requestVar(bk, i.operands[1]);
-            add(bk, StoreInstruction(dst, src));
+            add(bk, StoreInstruction(src, dst));
         } else if (i.isLoadInst) {
             // TODO: handle memory access mask
             enforce(i.operands[0].type.kind == LLVMPointerTypeKind);
             auto src = requestVar(bk, i.operands[0]);
             auto type = typeConstManager.requestType(i.operands[0].type.elementType);
-            auto id = idManager.requestId();
+            auto id = requestId(bk, i);
             add(bk, LoadInstruction(type, id, src));
         } else if (i.isBinaryOperator) {
             auto op0 = requestVar(bk, i.operands[0]);
             auto op1 = requestVar(bk, i.operands[1]);
             auto type = typeConstManager.requestType(i.type);
-            auto id = idManager.requestId();
+            auto id = requestId(bk, i);
             auto code = BinaryOpsMap[i.opcodeAsBinary];
             add(bk, BinaryOpInstrucion(code, type, id, op0, op1));
         } else if (i.isUnreachableInst) {
@@ -222,17 +223,20 @@ body:           foreach (b; bk.bs) {
             auto op1 = requestVar(bk, i.operands[1]);
             auto pred = Map[i.predicate];
             auto type = typeConstManager.requestType(i.type);
-            auto id = idManager.requestId();
+            auto id = requestId(bk, i);
             add(bk, ComparisonInstruction(pred, type, id, op0, op1));
         } else if (i.isSelectInst) {
             auto type = typeConstManager.requestType(i.type);
-            auto id = idManager.requestId();
+            auto id = requestId(bk, i);
             auto condition = requestVar(bk, i.conditionAsSelect);
             auto trueValue = requestVar(bk, i.trueValue);
             auto falseValue = requestVar(bk, i.falseValue);
             add(bk, SelectInstruction(type, id, condition, trueValue, falseValue));
         } else if (i.isAllocaInst) {
-            addVariable(bk, i, i.inst);
+            // TODO: handle initializer
+            auto type = typeConstManager.requestType(i.type);
+            auto id = requestId(bk, i);
+            add(bk, VariableInstruction(type, id, StorageClass.Function));
         } else if (i.isSwitchInst) {
             // TODO: Not yet implemented.
         } else if (i.isBranchInst) {
@@ -255,9 +259,10 @@ body:           foreach (b; bk.bs) {
         } else if (i.isUnaryInstruction) {
             //TODO: not implemneted yet.
         } else if (i.isGetElementPtrInst) {
-            enforce(i.type.kind == LLVMPointerTypeKind);
-            auto type = typeConstManager.requestType(i.type.elementType);
-            auto id = idManager.requestId();
+            //enforce(Instruction(i.operands[1].op).isConstant);
+            //enforce(Instruction(i.operands[1].op).zExtValue == 0);
+            auto type = typeConstManager.requestType(i.type);
+            auto id = requestId(bk, i);
             auto base = requestVar(bk, i.operands[0]);
             auto indexes = i.operands[1..$].map!(op => requestVar(bk, op)).array;
             add(bk, AccessChainInstruction(type, id, base, indexes));
@@ -272,9 +277,10 @@ body:           foreach (b; bk.bs) {
         } else if (i.isCallInst) {
             auto binaryOps = getAttribute!BinaryOps(i.calledFunction, "operator");
             if (binaryOps.empty is false) {
+                enforce(i.operands[0].type.kind == LLVMPointerTypeKind);
                 auto code = BinaryOpsMap[binaryOps.front];
-                auto type = typeConstManager.requestType(i.operands[0].type);
-                auto id = idManager.requestId();
+                auto type = typeConstManager.requestType(i.operands[0].type.elementType);
+                auto id = requestId(bk, i);
                 auto op0 = requestVar(bk, i.operands[0]);
                 auto op1 = requestVar(bk, i.operands[1]);
                 add(bk, BinaryOpInstrucion(code, type, id, op0, op1));
@@ -288,7 +294,7 @@ body:           foreach (b; bk.bs) {
                 auto setName = tmp[0];
                 uint instIndex = tmp[1].to!GLSLBuiltin.to!uint;
                 auto type = typeConstManager.requestType(Type.getFloatType!(32));
-                auto id = idManager.requestId();
+                auto id = requestId(bk, i);
                 auto set = extInstImportManager.requestExtInstImport(setName);
                 auto operands = [id];
                 add(bk, ExtInstInstruction(type, id, set, instIndex, operands));
@@ -297,7 +303,7 @@ body:           foreach (b; bk.bs) {
             auto composite = getAttribute!string(i.calledFunction, "composite");
             if (composite.empty is false) {
                 auto type = typeConstManager.requestType(i.argOperand(0).type.elementType);
-                auto id = idManager.requestId();
+                auto id = requestId(bk, i);
                 auto args = iota(1, i.numArgOperands).map!(j => requestVar(bk, i.argOperand(j))).array;
                 add(bk, CompositeConstructInstruction(type, id, args));
                 add(bk, StoreInstruction(requestVar(bk, i.argOperand(0)), id));
@@ -313,24 +319,21 @@ body:           foreach (b; bk.bs) {
         bk.bs ~= BodyInstruction(i);
     }
 
-    private void addVariable(Op)(Bk bk, Op op, LLVMValueRef val) {
-        // TODO: handle initializer
-        auto type = typeConstManager.requestType(op.type);
-        auto id = idManager.requestId();
-        bk.variables[val] = id;
-        bk.parent.vs ~= VariableInstruction(type, id, StorageClass.Function);
-    }
-
     private Id requestVar(Bk bk, Operand op) {
         auto g = globalVarManager.getGlobalVar(op.op);
         if (g.isNull is false) return g.get();
         if (op.isConstant) {
             return requestConstant(op);
         }
-        if (op.op !in bk.variables) {
-            addVariable(bk, op, op.op);
-        }
+        enforce(op.op in bk.variables,
+            format!"\nRequested: %s\nCandidates are:%s"(op, bk.variables.keys.map!(o => Operand(cast(LLVMValueRef)(o)).to!string).array.join("\n")));
         return bk.variables[op.op];
+    }
+
+    private Id requestId(Bk bk, Instruction i) {
+        auto id = idManager.requestId();
+        bk.variables[i.inst] = id;
+        return id;
     }
 
     private Id requestConstant(Operand op) {
@@ -354,6 +357,10 @@ body:           foreach (b; bk.bs) {
                 // case LLVMFP128TypeKind: return "quad";
                 // case LLVMPPC_FP128TypeKind: return "ppc_quad";
             }
+        } else if (i.isConstantDataVector) {
+            auto elementType = typeConstManager.requestType(i.type.elementType);
+            auto components = iota(i.type.lengthAsVector).map!(j => requestConstant(i.elementAsConstant(j))).array;
+            return typeConstManager.requestComponentConstant(type, elementType, components);
         }
         assert(false);
     }

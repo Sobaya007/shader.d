@@ -22,7 +22,6 @@ struct S {
 }
 
 @block
-align(1)
 struct BlockName {
     S s;
     bool cond;
@@ -32,7 +31,7 @@ struct BlockName {
 @entryPoint(ExecutionModel.Fragment)
 @execMode(ExecutionMode.OriginLowerLeft)
 void main() {
-    vec4 scale = vec4(1.0, 1.0, 2.0, 1.0);
+    vec4 scale = vec4([1.0, 1.0, 2.0, 1.0]);
     color = color1 + blockName.s.v[2];
     /*
     if (blockName.cond)

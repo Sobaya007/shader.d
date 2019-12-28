@@ -144,6 +144,13 @@ class TypeConstManager {
         }
     }
 
+    Id requestComponentConstant(Id type, Id elementType, Id[] components) {
+        auto name = tuple(idManager.getName(type), components.map!(c => idManager.getName(c)).join(" "));
+        if (auto res = name in consts) return *res;
+
+        return newConstant!(ConstantCompositeInstruction)(type, name, components);
+    }
+
     void writeAllInstructions(Writer writer) const {
         foreach (i; instructions) {
             static foreach (I; TypeConstInstructions) {

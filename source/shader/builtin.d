@@ -1,5 +1,6 @@
 module shader.builtin;
 
+import core.simd;
 import std.traits : isInstanceOf;
 import std.meta : Repeat;
 import ldc.attributes;
@@ -29,7 +30,7 @@ struct Vector(T, size_t N) {
 
 alias vec2 = Vector!(float, 2);
 alias vec3 = Vector!(float, 3);
-alias vec4 = Vector!(float, 4);
+alias vec4 = float4;
 
 struct Matrix(T, size_t R, size_t C) {
     alias ElementType = T;
@@ -164,11 +165,15 @@ llvmAttr extendedFromGLSL(GLSLBuiltin builtin) {
     return llvmAttr("extend", "GLSL.std.450:" ~ str);
 }
 
-enum FSV(T) = __traits(isScalar, T) && __traits(isFloating, T) || isInstanceOf!(Vector, T) && __traits(isFloating, T.ElementType);
-enum SSV(T) = __traits(isScalar, T) && !__traits(isUnsigned, T) && __traits(isIntegral, T) || isInstanceOf!(Vector, T) && !__traits(isUnsigned, T.ElementType) && __traits(isIntegral, T.ElementType);
-enum USV(T) = __traits(isScalar, T) && __traits(isUnsigned, T) && __traits(isIntegral, T) || isInstanceOf!(Vector, T) && __traits(isUnsigned, T.ElementType) && __traits(isIntegral, T.ElementType);
-enum FSV32(T) = __traits(isScalar, T) && is(T == float) || isInstanceOf!(Vector, T) && is(T.ElementType == float);
-enum ISV(T) = SSV!(T) || USV!(T);
+enum FS(T)   = __traits(isScalar, T) &&  __traits(isFloating, T);
+enum FS32(T) = __traits(isScalar, T) &&  is(T == float);
+enum SS(T)   = __traits(isScalar, T) && !__traits(isUnsigned, T) && __traits(isIntegral, T);
+enum US(T)   = __traits(isScalar, T) &&  __traits(isUnsigned, T) && __traits(isIntegral, T);
+enum FSV(T)   = FS!T   || is(T == __vector(E[N]), E, size_t N) && FS!E;
+enum SSV(T)   = SS!T   || is(T == __vector(E[N]), E, size_t N) && SS!E;
+enum USV(T)   = US!T   || is(T == __vector(E[N]), E, size_t N) && US!E;
+enum FSV32(T) = FS32!T || is(T == __vector(E[N]), E, size_t N) && FS32!E;
+enum ISV(T)   = SSV!(T) || USV!(T);
 enum Square(T) = isInstanceOf!(Matrix, T) && T.Row == T.Column;
 
 @extendedFromGLSL(GLSLBuiltin.Round)
