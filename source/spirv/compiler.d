@@ -27,8 +27,8 @@ class SpirvCompiler {
         }
 
         foreach (func; mod.functions) {
-            auto hasExtend = func.attributes.canFind!(a => a.isString && a.kindAsString == "extend");
-            auto hasEntryPoint = func.attributes.canFind!(a => a.isString && a.kindAsString == "entryPoint");
+            const hasExtend = func.attributes.canFind!(a => a.isString && a.kindAsString == "extend");
+            const hasEntryPoint = func.attributes.canFind!(a => a.isString && a.kindAsString == "entryPoint");
             if (hasExtend) continue;
             if (func.firstUse is null && !hasEntryPoint) continue;
             spirv.addFunction(func);

@@ -463,7 +463,7 @@ struct FunctionInstruction {
     enum op = Op.OpFunction;
     Id returnType;
     Id id;
-    FunctionControlMask control;
+    uint control;
     Id functionType;
 }
 

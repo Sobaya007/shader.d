@@ -57,6 +57,16 @@ class TypeConstManager {
         this.annotationManager = annotationManager;
     }
 
+    Id requestType(Type type, StorageClass storage) {
+        auto name = type.name;
+        if (auto res = name in types) return *res;
+        if (isVectorStruct(type)) return requestType(convertToVector(type));
+        enforce(type.kind == LLVMPointerTypeKind);
+        return newType!(TypePointerInstruction)
+            (name, storage,
+             requestType(type.elementType));
+    }
+
     Id requestType(Type type) {
         auto name = type.name;
         if (auto res = name in types) return *res;
@@ -109,12 +119,6 @@ class TypeConstManager {
                 auto stride = (getSize(type.elementType)+3) / 4 * 4;
                 annotationManager.notifyDecoration(result, Decoration.ArrayStride, stride);
                 return result;
-            case LLVMPointerTypeKind:
-                // TODO: handle StorageClass correctly
-                return newType!(TypePointerInstruction)
-                    (name,
-                     StorageClass.Private,
-                     requestType(type.elementType));
             case LLVMVectorTypeKind:
                 return newType!(TypeVectorInstruction)
                     (name,
@@ -161,6 +165,14 @@ class TypeConstManager {
         }
     }
 
+    StorageClass getStorage(Id typeId) {
+        return instructions
+            .map!(i => i.peek!(TypePointerInstruction))
+            .filter!(i => i !is null)
+            .filter!(i => i.id == typeId)
+            .front.storage;
+    }
+
     private Id newType(Instruction, Args...)(string name, Args args) {
         Id id = idManager.requestId(name);
         types[name] = id;
@@ -200,17 +212,17 @@ class TypeConstManager {
                 enforce(false, "Array of void is not allowed.");
                 break;
             case LLVMHalfTypeKind:
-                return 16;
+                return 2;
             case LLVMFloatTypeKind:
-                return 32;
+                return 4;
             case LLVMDoubleTypeKind:
-                return 64;
+                return 8;
             case LLVMX86_FP80TypeKind:
-                return 80;
+                return 10;
             case LLVMFP128TypeKind:
-                return 128;
+                return 16;
             case LLVMPPC_FP128TypeKind:
-                return 128;
+                return 16;
             case LLVMLabelTypeKind:
                 assert(false);
             case LLVMIntegerTypeKind:
@@ -222,7 +234,7 @@ class TypeConstManager {
             case LLVMArrayTypeKind:
                 return getSize(type.elementType) * type.lengthAsArray;
             case LLVMPointerTypeKind:
-                return 32; // TODO: Consider more seriously
+                return 4; // TODO: Consider more seriously
             case LLVMVectorTypeKind:
                 return getSize(type.elementType) * type.lengthAsVector;
             case LLVMMetadataTypeKind:

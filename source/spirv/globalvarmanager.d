@@ -27,9 +27,9 @@ class GlobalVarManager {
 
     Id addGlobalVar(Variable var) {
         enforce(var.type.kind == LLVMPointerTypeKind);
-        auto type = typeConstManager.requestType(var.type.elementType);
-        Id id = idManager.requestId(var.name);
         auto storageClass = getStorageClass(var);
+        auto type = typeConstManager.requestType(var.type, storageClass);
+        Id id = idManager.requestId(var.name);
         auto decoration = getDecoration(var);
         decoration.each!(d => annotationManager.notifyDecoration(id, d));
         instructions ~= VariableInstruction(type, id, storageClass);
@@ -46,6 +46,11 @@ class GlobalVarManager {
         foreach (i; instructions) {
             writer.writeInstruction(i);
         }
+    }
+
+    Nullable!StorageClass getStorageClass(Id id) {
+        auto res = instructions.find!(i => i.id == id);
+        return res.empty ? Nullable!StorageClass.init : res.front.storage.nullable;
     }
 
     private StorageClass getStorageClass(Variable var) {

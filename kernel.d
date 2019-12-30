@@ -26,13 +26,12 @@ struct BlockName {
     S s;
     bool cond;
 }
-@uniform BlockName* blockName;
+@uniform BlockName blockName;
 
 @entryPoint(ExecutionModel.Fragment)
 @execMode(ExecutionMode.OriginLowerLeft)
-void main() {
+void fragMain() {
     vec4 scale = vec4([1.0, 1.0, 2.0, 1.0]);
-    color = color1 + blockName.s.v[2];
     if (blockName.cond)
         color = color1 + blockName.s.v[2];
     else
