@@ -42,11 +42,10 @@ class FunctionManager {
     class Fn {
         FunctionInstruction decl;
         FunctionParameterInstruction[] ps;
-        VariableInstruction[] vs;
         FunctionEndInstruction end;
         EntryPoint ep;
-        Bk[LLVMBasicBlockRef] blocks;
-        Id[LLVMValueRef] variables;
+        Bk[] blocks;
+        Tuple!(Id, LLVMValueRef)[] variables;
     }
 
     class Bk {
@@ -94,7 +93,7 @@ class FunctionManager {
 
         foreach (b; func.basicBlocks) {
             auto bk = new Bk(b, fn);
-            fn.blocks[b.block] = bk;
+            fn.blocks ~= bk;
             bk.id = idManager.requestId();
             add(bk, LabelInstruction(bk.id));
         }
@@ -120,7 +119,6 @@ class FunctionManager {
         foreach (fn; fns) {
             writer.writeInstruction(fn.decl);
             foreach (p; fn.ps) writer.writeInstruction(p);
-            foreach (v; fn.vs) writer.writeInstruction(v);
             foreach (bk; fn.blocks) {
 body:           foreach (b; bk.bs) {
                     static foreach (I; BodyInstructions) {
@@ -258,13 +256,13 @@ body:           foreach (b; bk.bs) {
             // TODO: Not yet implemented.
         } else if (i.isBranchInst) {
             // TODO: Handle LoopControlMask 
-            auto successor = bk.parent.blocks[i.successor(0).block].id;
+            auto successor = bk.parent.blocks.find!(b => b.b.block == i.successor(0).block).front.id;
             if (!i.isConditional) {
                 add(bk, BranchInstruction(successor));
             } else {
                 auto condition = requestVar(bk, i.conditionAsBranch);
                 auto trueSuccessor = successor;
-                auto falseSuccessor = bk.parent.blocks[i.successor(1).block].id;
+                auto falseSuccessor = bk.parent.blocks.find!(b => b.b.block == i.successor(1).block).front.id;
                 add(bk, BranchConditionalInstruction(condition, trueSuccessor, falseSuccessor));
             }
         } else if (i.isPHINode) {
@@ -281,7 +279,7 @@ body:           foreach (b; bk.bs) {
             auto op = requestVar(bk, i.operands[0]);
             auto type = typeConstManager.requestType(i.type);
             auto id = requestId(bk, i);
-            auto code = BinaryOpsMap[i.opcodeAsBinary];
+            auto code = UnaryOpsMap[i.opcodeAsUnary];
             add(bk, UnaryOpInstruction(code, type, id, op));
         } else if (i.isGetElementPtrInst) {
             //enforce(Instruction(i.operands[1].op).isConstant);
@@ -354,14 +352,14 @@ body:           foreach (b; bk.bs) {
         if (op.isConstant) {
             return requestConstant(op);
         }
-        enforce(op.op in bk.parent.variables,
-            format!"\nRequested: %s\nCandidates are:%s"(op, bk.parent.variables.keys.map!(o => Operand(cast(LLVMValueRef)(o)).to!string).array.join("\n")));
-        return bk.parent.variables[op.op];
+        enforce(bk.parent.variables.canFind!(p => p[1] == op.op),
+            format!"\nRequested: %s\nCandidates are:%s"(op, bk.parent.variables.map!(o => Operand(cast(LLVMValueRef)(o[1])).to!string).array.join("\n")));
+        return bk.parent.variables.find!(p => p[1] == op.op).front[0];
     }
 
     private Id requestId(Bk bk, Instruction i) {
         auto id = idManager.requestId();
-        bk.parent.variables[i.inst] = id;
+        bk.parent.variables ~= tuple(id, i.inst);
         return id;
     }
 

@@ -4,6 +4,7 @@ import std;
 import llvm.mod;
 import spirv.spirv;
 import spirv.spv;
+import core.thread;
 
 void compileToLL(string file) {
     auto result = executeShell(format!"ldc2 %s --betterC --output-ll -Isource"(file));
