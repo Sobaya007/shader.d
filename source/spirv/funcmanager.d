@@ -23,6 +23,7 @@ alias BodyInstructions = AliasSeq!(
     LabelInstruction,
     StoreInstruction,
     LoadInstruction,
+    INotEqualInstruction,
     UnaryOpInstruction,
     BinaryOpInstrucion,
     UnreachableInstruction,
@@ -293,7 +294,12 @@ body:           foreach (b; bk.bs) {
             auto type = requestType(i.type);
             auto id = requestId(bk, i);
             auto code = UnaryOpsMap[i.opcodeAsUnary];
-            add(bk, UnaryOpInstruction(code, type, id, op));
+            if (code == Op.OpUConvert && i.type == Type.getIntegerType!(1)) {
+                auto zeroType = typeConstManager.requestType(i.operands[0].type);
+                add(bk, INotEqualInstruction(type, id, op, typeConstManager.requestConstant!uint(zeroType, 0)));
+            } else {
+                add(bk, UnaryOpInstruction(code, type, id, op));
+            }
         } else if (i.isGetElementPtrInst) {
             enforce(Instruction(i.operands[1].op).isConstant);
             enforce(Instruction(i.operands[1].op).zExtValue == 0);
@@ -339,10 +345,10 @@ body:           foreach (b; bk.bs) {
                 auto tmp = extends.front.split(":");
                 auto setName = tmp[0];
                 uint instIndex = tmp[1].to!GLSLBuiltin.to!uint;
-                auto type = requestType(Type.getFloatType!(32));
+                auto type = requestType(i.type);
                 auto id = requestId(bk, i);
                 auto set = extInstImportManager.requestExtInstImport(setName);
-                auto operands = [id];
+                auto operands = i.argOperands.map!(arg => requestVar(bk, arg)).array;
                 add(bk, ExtInstInstruction(type, id, set, instIndex, operands));
             }
 
@@ -400,9 +406,9 @@ body:           foreach (b; bk.bs) {
         auto type = requestType(i.type);
         if (i.isConstantInt) {
             if (i.type.widthAsInt == 32) {
-                return typeConstManager.requestConstant(type, cast(uint)i.zExtValue);
+                return typeConstManager.requestConstant(type, cast(int)i.zExtValue);
             } else if (i.type.widthAsInt == 64) {
-                return typeConstManager.requestConstant(type, cast(ulong)i.zExtValue);
+                return typeConstManager.requestConstant(type, cast(long)i.zExtValue);
             } else {
                 assert(false);
             }

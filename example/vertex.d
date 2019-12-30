@@ -29,7 +29,7 @@ struct BlockName {
 @uniform BlockName blockName;
 
 @entryPoint(ExecutionModel.Fragment)
-@execMode(ExecutionMode.OriginLowerLeft)
+@execMode(ExecutionMode.OriginUpperLeft)
 void fragMain() {
     vec4 scale = vec4([1.0, 1.0, 2.0, 1.0]);
     if (blockName.cond)

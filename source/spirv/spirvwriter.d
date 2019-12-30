@@ -7,6 +7,7 @@ import std;
 
 class SpirvWriter {
 
+    private enum Version = 0x00010000;
     private enum GeneratorMagicNumber = 114514;
 
     private Writer writer;

@@ -44,7 +44,7 @@ class Spirv {
         this.typeConstManager = new TypeConstManager(_idManager, annotationManager, capabilityManager);
         this.globalvarManager = new GlobalVarManager(_idManager, annotationManager, typeConstManager);
         this.funcManager = new FunctionManager(_idManager, capabilityManager, entryPointManager, extInstImportManager, globalvarManager, typeConstManager);
-        this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
+        this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.GLSL450);
     }
 
     const(IdManager) idManager() const{

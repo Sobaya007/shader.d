@@ -394,10 +394,10 @@ void main() {
      */
 
     writer.write("vert.spv", compiler.compile("vertex.d"));
-    scope (exit) fremove("vert.spv");
+    // scope (exit) fremove("vert.spv");
 
     writer.write("frag.spv", compiler.compile("fragment.d"));
-    scope (exit) fremove("frag.spv");
+    // scope (exit) fremove("frag.spv");
 
     ShaderModule.CreateInfo vsShaderCreateInfo = {
         code: cast(ubyte[])read("vert.spv")

@@ -108,7 +108,7 @@ struct Type {
             case LLVMIntegerTypeKind:
                 // TODO: How can I determine sign?
                 final switch (widthAsInt) {
-                    case 1: return "bit";
+                    case 1: return "bool";
                     case 8: return "byte";
                     case 16: return "short";
                     case 32: return "int";

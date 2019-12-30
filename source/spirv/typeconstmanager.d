@@ -33,7 +33,9 @@ alias TypeInstruction = Algebraic!(TypeInstructions);
 alias ConstInstructions = AliasSeq!(
     ConstantTrueInstruction,
     ConstantFalseInstruction,
+    ConstantInstruction!(int),
     ConstantInstruction!(uint),
+    ConstantInstruction!(long),
     ConstantInstruction!(ulong),
     ConstantInstruction!(float),
     ConstantInstruction!(double),
@@ -61,7 +63,7 @@ class TypeConstManager {
     }
 
     Id requestType(Type type, StorageClass storage) {
-        auto name = type.name;
+        auto name = type.name ~ storage.to!string;
         if (auto res = name in types) return *res;
         if (isVectorStruct(type)) return requestType(convertToVector(type));
         enforce(type.kind == LLVMPointerTypeKind);
@@ -96,10 +98,20 @@ class TypeConstManager {
             case LLVMLabelTypeKind:
                 assert(false);
             case LLVMIntegerTypeKind:
-                if (type.widthAsInt == 16)
-                    capabilityManager.requestCapability(Capability.Int16);
-                if (type.widthAsInt == 64)
-                    capabilityManager.requestCapability(Capability.Int64);
+                switch (type.widthAsInt) {
+                    case 1:
+                        return newType!(TypeBoolInstruction)(name);
+                    case 8:
+                        capabilityManager.requestCapability(Capability.Int8);
+                        break;
+                    case 16:
+                        capabilityManager.requestCapability(Capability.Int16);
+                        break;
+                    case 64:
+                        capabilityManager.requestCapability(Capability.Int64);
+                        break;
+                    default: break;
+                }
                 return newType!(TypeIntInstruction)(name, type.widthAsInt);
             case LLVMFunctionTypeKind:
                 return newType!(TypeFunctionInstruction)
