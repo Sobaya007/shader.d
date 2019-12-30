@@ -6,7 +6,7 @@ docs/
 spirv-d.so
 spirv-d.dylib
 spirv-d.dll
-spirv-d.a
+libspirv-d.a
 spirv-d.lib
 spirv-d-test-*
 *.exe

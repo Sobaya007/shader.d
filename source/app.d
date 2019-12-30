@@ -8,13 +8,8 @@ import llvm.mod;
 import ldc.attributes;
 
 void main() {
-    compileToLL("kernel.d");
-    compileToBC("kernel.d");
-
-    auto mod = Module.readBC("kernel.bc", "buffername");
-
     auto compiler = new SpirvCompiler;
-    auto spirv = compiler.compile(mod);
+    auto spirv = compiler.compile("kernel.d");
 
     auto writer = new SpirvWriter;
     fwrite("kernel.spv", writer.write(spirv));

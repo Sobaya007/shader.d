@@ -7,16 +7,24 @@ import spirv.spv;
 import core.thread;
 
 void compileToLL(string file) {
-    auto result = executeShell(format!"ldc2 %s --betterC --output-ll -Isource"(file));
+    auto result = executeShell(format!"ldc2 %s --betterC --output-ll -I%s"(file, __FILE_FULL_PATH__.dirName.dirName));
     enforce(result.status == 0, result.output);
 }
 
 void compileToBC(string file) {
-    auto result = executeShell(format!"ldc2 %s --betterC --output-bc -Isource"(file));
+    auto result = executeShell(format!"ldc2 %s --betterC --output-bc -I%s"(file, __FILE_FULL_PATH__.dirName.dirName));
     enforce(result.status == 0, result.output);
 }
 
 class SpirvCompiler {
+
+    Spirv compile(string filename) {
+        compileToLL(filename);
+        compileToBC(filename);
+
+        auto mod = Module.readBC(filename.setExtension("bc"), filename.stripExtension);
+        return compile(mod);
+    }
 
     Spirv compile(Module mod) {
         auto spirv = new Spirv;

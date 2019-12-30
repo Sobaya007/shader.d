@@ -1,6 +1,7 @@
 module spirv.entrypointmanager;
 
 import std;
+import spirv.capabilitymanager;
 import spirv.spv;
 import spirv.instruction;
 import spirv.idmanager;
@@ -34,13 +35,36 @@ class EntryPointManager {
     }
 
     private IdManager idManager;
+    private CapabilityManager capabilityManager; 
     private EntryPoint[] entryPoints;
 
-    this(IdManager idManager) {
+    this(IdManager idManager, CapabilityManager capabilityManager) {
         this.idManager = idManager;
+        this.capabilityManager = capabilityManager;
     }
 
     EntryPoint addEntryPoint(Id entryPoint, ExecutionModel model) {
+        switch (model) {
+            case ExecutionModel.Vertex:
+            case ExecutionModel.Fragment:
+            case ExecutionModel.GLCompute:
+                capabilityManager.requestCapability(Capability.Shader);
+                break;
+            case ExecutionModel.Geometry:
+                capabilityManager.requestCapability(Capability.Geometry);
+                break;
+            case ExecutionModel.TessellationControl:
+            case ExecutionModel.TessellationEvaluation:
+                capabilityManager.requestCapability(Capability.Tessellation);
+                break;
+            case ExecutionModel.Kernel:
+                capabilityManager.requestCapability(Capability.Kernel);
+                break;
+            default:
+                // TODO: other cases
+                break;
+        }
+
         auto e = new EntryPoint(entryPoint, model);
         entryPoints ~= e;
         return e;

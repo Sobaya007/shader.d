@@ -2,6 +2,7 @@ module spirv.typeconstmanager;
 
 import std;
 import spirv.annotationmanager;
+import spirv.capabilitymanager;
 import spirv.spv;
 import spirv.idmanager;
 import spirv.instruction;
@@ -48,13 +49,15 @@ class TypeConstManager {
 
     private IdManager idManager;
     private AnnotationManager annotationManager;
+    private CapabilityManager capabilityManager;
     private Id[string] types;
     private Id[Tuple!(string,string)] consts;
     private TypeConstInstruction[] instructions;
 
-    this(IdManager idManager, AnnotationManager annotationManager) {
+    this(IdManager idManager, AnnotationManager annotationManager, CapabilityManager capabilityManager) {
         this.idManager = idManager;
         this.annotationManager = annotationManager;
+        this.capabilityManager = capabilityManager;
     }
 
     Id requestType(Type type, StorageClass storage) {
@@ -77,10 +80,12 @@ class TypeConstManager {
             case LLVMVoidTypeKind:
                 return newType!(TypeVoidInstruction)(name);
             case LLVMHalfTypeKind:
+                capabilityManager.requestCapability(Capability.Float16);
                 return newType!(TypeFloatInstruction)(name, 16);
             case LLVMFloatTypeKind:
                 return newType!(TypeFloatInstruction)(name, 32);
             case LLVMDoubleTypeKind:
+                capabilityManager.requestCapability(Capability.Float64);
                 return newType!(TypeFloatInstruction)(name, 64);
             case LLVMX86_FP80TypeKind:
                 assert(false);
@@ -91,6 +96,10 @@ class TypeConstManager {
             case LLVMLabelTypeKind:
                 assert(false);
             case LLVMIntegerTypeKind:
+                if (type.widthAsInt == 16)
+                    capabilityManager.requestCapability(Capability.Int16);
+                if (type.widthAsInt == 64)
+                    capabilityManager.requestCapability(Capability.Int64);
                 return newType!(TypeIntInstruction)(name, type.widthAsInt);
             case LLVMFunctionTypeKind:
                 return newType!(TypeFunctionInstruction)
@@ -120,6 +129,9 @@ class TypeConstManager {
                 annotationManager.notifyDecoration(result, Decoration.ArrayStride, stride);
                 return result;
             case LLVMVectorTypeKind:
+                if (type.lengthAsVector.among(8, 16)) {
+                    capabilityManager.requestCapability(Capability.Vector16);
+                }
                 return newType!(TypeVectorInstruction)
                     (name,
                      requestType(type.elementType),
@@ -148,7 +160,7 @@ class TypeConstManager {
         }
     }
 
-    Id requestComponentConstant(Id type, Id elementType, Id[] components) {
+    Id requestComponentConstant(Id type, Id[] components) {
         auto name = tuple(idManager.getName(type), components.map!(c => idManager.getName(c)).join(" "));
         if (auto res = name in consts) return *res;
 

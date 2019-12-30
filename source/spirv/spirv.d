@@ -39,11 +39,11 @@ class Spirv {
         this.capabilityManager = new CapabilityManager;
         this.extensionManager = new ExtensionManager;
         this.extInstImportManager = new ExtInstImportManager(_idManager);
-        this.entryPointManager = new EntryPointManager(_idManager);
+        this.entryPointManager = new EntryPointManager(_idManager, capabilityManager);
         this.annotationManager = new AnnotationManager;
-        this.typeConstManager = new TypeConstManager(_idManager, annotationManager);
+        this.typeConstManager = new TypeConstManager(_idManager, annotationManager, capabilityManager);
         this.globalvarManager = new GlobalVarManager(_idManager, annotationManager, typeConstManager);
-        this.funcManager = new FunctionManager(_idManager, entryPointManager, extInstImportManager, globalvarManager, typeConstManager);
+        this.funcManager = new FunctionManager(_idManager, capabilityManager, entryPointManager, extInstImportManager, globalvarManager, typeConstManager);
         this.mis = MemoryModelInstuction(AddressingModel.Logical, MemoryModel.Vulkan);
     }
 

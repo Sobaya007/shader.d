@@ -1,6 +1,7 @@
 module spirv.funcmanager;
 
 import std;
+import spirv.capabilitymanager;
 import spirv.entrypointmanager;
 import spirv.extinstimportmanager;
 import spirv.globalvarmanager;
@@ -59,14 +60,16 @@ class FunctionManager {
     }
 
     private IdManager idManager;
+    private CapabilityManager capabilityManager;
     private EntryPointManager entryPointManager;
     private ExtInstImportManager extInstImportManager;
     private GlobalVarManager globalVarManager;
     private TypeConstManager typeConstManager;
     private Fn[] fns;
 
-    this(IdManager idManager, EntryPointManager entryPointManager, ExtInstImportManager extInstImportManager, GlobalVarManager globalVarManager, TypeConstManager typeConstManager) {
+    this(IdManager idManager, CapabilityManager capabilityManager, EntryPointManager entryPointManager, ExtInstImportManager extInstImportManager, GlobalVarManager globalVarManager, TypeConstManager typeConstManager) {
         this.idManager = idManager;
+        this.capabilityManager = capabilityManager;
         this.entryPointManager = entryPointManager;
         this.extInstImportManager = extInstImportManager;
         this.globalVarManager = globalVarManager;
@@ -333,7 +336,6 @@ body:           foreach (b; bk.bs) {
 
             auto extends = getAttribute!string(i.calledFunction, "extend");
             if (extends.empty is false) {
-                // TODO: 
                 auto tmp = extends.front.split(":");
                 auto setName = tmp[0];
                 uint instIndex = tmp[1].to!GLSLBuiltin.to!uint;
@@ -360,6 +362,11 @@ body:           foreach (b; bk.bs) {
     }
 
     private void add(Inst)(Bk bk, Inst i) {
+        static if (hasUDA!(Inst, Necessary)) {
+            static foreach (cap; getUDAs!(Inst, Necessary)[0].caps) {
+                capabilitymanager.requestCapability(cap);
+            }
+        }
         bk.bs ~= BodyInstruction(i);
     }
 
@@ -410,9 +417,8 @@ body:           foreach (b; bk.bs) {
                 // case LLVMPPC_FP128TypeKind: return "ppc_quad";
             }
         } else if (i.isConstantDataVector) {
-            auto elementType = requestType(i.type.elementType);
             auto components = iota(i.type.lengthAsVector).map!(j => requestConstant(i.elementAsConstant(j))).array;
-            return typeConstManager.requestComponentConstant(type, elementType, components);
+            return typeConstManager.requestComponentConstant(type, components);
         }
         assert(false);
     }

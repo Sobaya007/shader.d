@@ -26,4 +26,9 @@ class SpirvWriter {
             return writer.data;
         }
     }
+
+    void write(string filename, in Spirv spirv) {
+        import std.file : fwrite = write;
+        fwrite(filename, write(spirv));
+    }
 }
