@@ -89,6 +89,15 @@ class FunctionManager {
 
         auto fn = new Fn;
 
+        auto epAttr = getAttribute!ExecutionModel(func, "entryPoint");
+        if (epAttr.empty is false) {
+            auto e = entryPointManager.addEntryPoint(funcId, epAttr.front);
+            foreach (mode; getAttribute!ExecutionMode(func, "execMode")) {
+                e.addMode(mode);
+            }
+            fn.ep = e;
+        }
+
         enum FunctionControlMaskMap = [
             AttributeEnum.ReadNone     : FunctionControlMask.Pure,
             AttributeEnum.ReadOnly     : FunctionControlMask.Const,
@@ -115,15 +124,6 @@ class FunctionManager {
         }
         foreach (b; fn.blocks) {
             addBlock(b);
-        }
-
-        auto epAttr = getAttribute!ExecutionModel(func, "entryPoint");
-        if (epAttr.empty is false) {
-            auto e = entryPointManager.addEntryPoint(funcId, epAttr.front);
-            foreach (mode; getAttribute!ExecutionMode(func, "execMode")) {
-                e.addMode(mode);
-            }
-            fn.ep = e;
         }
 
         fns ~= fn;
@@ -413,7 +413,12 @@ body:           foreach (b; bk.bs) {
 
     private Id requestVar(Bk bk, Operand op) {
         auto g = globalVarManager.getGlobalVar(op.op);
-        if (g.isNull is false) return g.get();
+        if (g.isNull is false) {
+            if (bk.parent.ep) {
+                bk.parent.ep.notifyUse(g.get());
+            }
+            return g.get();
+        }
         if (op.isConstant) {
             return requestConstant(op);
         }

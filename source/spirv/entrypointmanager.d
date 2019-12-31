@@ -72,7 +72,7 @@ class EntryPointManager {
 
     void writeAllInstructions(Writer writer) const {
         foreach (ep; entryPoints) {
-            writer.writeInstruction(const EntryPointInstruction(ep.model, ep.id, idManager.getName(ep.id), ep.args));
+            writer.writeInstruction(const EntryPointInstruction(ep.model, ep.id, "main", ep.args));
         }
         foreach (ep; entryPoints) {
             foreach (op; ep.options) {

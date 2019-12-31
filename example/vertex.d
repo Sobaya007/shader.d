@@ -39,3 +39,10 @@ void fragMain() {
     for (int i = 0; i < 4; ++i)
         color *= multiplier;
 }
+
+@input vec2 pos;
+layout(location = 0) out vec3 fragColor;
+
+void main() {
+    gl_Position = vec4(pos, 0.0, 1.0);
+}

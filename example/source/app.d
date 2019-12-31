@@ -393,7 +393,7 @@ void main() {
        Shader Module作成
      */
 
-    writer.write("vert.spv", compiler.compile("vertex.d"));
+    compileShader("test.vert");
     // scope (exit) fremove("vert.spv");
 
     writer.write("frag.spv", compiler.compile("fragment.d"));
