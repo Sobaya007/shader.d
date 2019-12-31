@@ -37,6 +37,8 @@ alias BodyInstructions = AliasSeq!(
     CompositeConstructInstruction,
     AccessChainInstruction,
     VariableInstruction,
+    SelectionMergeInstruction,
+    LoopMergeInstruction,
 );
 alias BodyInstruction = Algebraic!(BodyInstructions);
 
@@ -272,11 +274,40 @@ body:           foreach (b; bk.bs) {
             // TODO: Handle LoopControlMask 
             auto successor = bk.parent.blocks.find!(b => b.b.block == i.successor(0).block).front.id;
             if (!i.isConditional) {
+                if (successor < bk.id) { // detects back edge
+                    // assume loop
+                    // assume successor is loop header
+                    auto loopHeader = bk.parent.blocks.find!(b => b.id == successor).front;
+                    enforce(loopHeader.bs.back.peek!BranchConditionalInstruction);
+                    auto branch = loopHeader.bs.back.peek!BranchConditionalInstruction;
+                    auto mergeBlock = branch.falseLabel;
+                    auto continueTarget = branch.trueLabel;
+                    add(loopHeader, LoopMergeInstruction(mergeBlock, continueTarget, LoopControlMask.MaskNone), loopHeader.bs.length-1);
+                }
                 add(bk, BranchInstruction(successor));
             } else {
                 auto condition = requestVar(bk, i.conditionAsBranch);
                 auto trueSuccessor = successor;
                 auto falseSuccessor = bk.parent.blocks.find!(b => b.b.block == i.successor(1).block).front.id;
+                // detects merge point if exists
+                Id[] next(Id block) {
+                    auto branch = bk.parent.blocks.find!(b => b.id == block).front.bs.back;
+                    if (auto b = branch.peek!BranchInstruction) return [b.target];
+                    if (auto b = branch.peek!BranchConditionalInstruction) return [b.trueLabel, b.falseLabel];
+                    return [];
+                }
+                Id[] trueSuccessorSuccessors = [trueSuccessor], falseSuccessorSuccessors = [falseSuccessor];
+                while (true) {
+                    auto nextTrueSuccessorSuccessors  =  trueSuccessorSuccessors.map!(s => next(s)).join;
+                    auto nextFalseSuccessorSuccessors = falseSuccessorSuccessors.map!(s => next(s)).join;
+                    if (trueSuccessorSuccessors == nextTrueSuccessorSuccessors && falseSuccessorSuccessors == nextFalseSuccessorSuccessors) break;
+                    auto common = trueSuccessorSuccessors.filter!(s => falseSuccessorSuccessors.canFind(s));
+                    if (common.empty) continue;
+                    auto mergeBlocks = common.array;
+                    enforce(mergeBlocks.length == 1);
+                    auto mergeBlock = mergeBlocks.front;
+                    add(bk, SelectionMergeInstruction(mergeBlock, SelectionControlMask.MaskNone));
+                }
                 add(bk, BranchConditionalInstruction(condition, trueSuccessor, falseSuccessor));
             }
         } else if (i.isPHINode) {
@@ -368,12 +399,16 @@ body:           foreach (b; bk.bs) {
     }
 
     private void add(Inst)(Bk bk, Inst i) {
+        add(bk, i, bk.bs.length);
+    }
+
+    private void add(Inst)(Bk bk, Inst i, size_t index) {
         static if (hasUDA!(Inst, Necessary)) {
             static foreach (cap; getUDAs!(Inst, Necessary)[0].caps) {
                 capabilitymanager.requestCapability(cap);
             }
         }
-        bk.bs ~= BodyInstruction(i);
+        bk.bs.insertInPlace(index, BodyInstruction(i));
     }
 
     private Id requestVar(Bk bk, Operand op) {

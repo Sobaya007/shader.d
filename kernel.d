@@ -36,6 +36,6 @@ void fragMain() {
         color = color1 + blockName.s.v[2];
     else
         color = sqrt(color2) * scale;
-    for (int i = 0; i < 4; ++i)
+    foreach (i; 0..4)
         color *= multiplier;
 }

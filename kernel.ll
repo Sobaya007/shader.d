@@ -34,7 +34,9 @@ $blockName = comdat any
 ; Function Attrs: uwtable
 define void @fragMain() #4 comdat {
   %scale = alloca <4 x float>, align 16           ; [#uses = 2, size/byte = 16]
-  %i = alloca i32, align 4                        ; [#uses = 4, size/byte = 4]
+  %__key6 = alloca i32, align 4                   ; [#uses = 5, size/byte = 4]
+  %__limit7 = alloca i32, align 4                 ; [#uses = 2, size/byte = 4]
+  %i = alloca i32, align 4                        ; [#uses = 1, size/byte = 4]
   store <4 x float> <float 1.000000e+00, float 1.000000e+00, float 2.000000e+00, float 1.000000e+00>, <4 x float>* %scale
   %1 = getelementptr inbounds %kernel.BlockName, %kernel.BlockName* @blockName, i32 0, i32 1 ; [#uses = 1, type = i8*]
   %2 = load i8, i8* %1                            ; [#uses = 1]
@@ -60,25 +62,29 @@ else:                                             ; preds = %0
   br label %endif
 
 endif:                                            ; preds = %else, %if
-  store i32 0, i32* %i
+  store i32 0, i32* %__key6
+  store i32 4, i32* %__limit7
   br label %forcond
 
 forcond:                                          ; preds = %forinc, %endif
-  %14 = load i32, i32* %i                         ; [#uses = 1]
-  %15 = icmp slt i32 %14, 4                       ; [#uses = 1]
-  br i1 %15, label %forbody, label %endfor
+  %14 = load i32, i32* %__key6                    ; [#uses = 1]
+  %15 = load i32, i32* %__limit7                  ; [#uses = 1]
+  %16 = icmp slt i32 %14, %15                     ; [#uses = 1]
+  br i1 %16, label %forbody, label %endfor
 
 forbody:                                          ; preds = %forcond
-  %16 = load <4 x float>, <4 x float>* @multiplier ; [#uses = 1]
-  %17 = load <4 x float>, <4 x float>* @color     ; [#uses = 1]
-  %18 = fmul <4 x float> %17, %16                 ; [#uses = 1]
-  store <4 x float> %18, <4 x float>* @color
+  %17 = load i32, i32* %__key6                    ; [#uses = 1]
+  store i32 %17, i32* %i
+  %18 = load <4 x float>, <4 x float>* @multiplier ; [#uses = 1]
+  %19 = load <4 x float>, <4 x float>* @color     ; [#uses = 1]
+  %20 = fmul <4 x float> %19, %18                 ; [#uses = 1]
+  store <4 x float> %20, <4 x float>* @color
   br label %forinc
 
 forinc:                                           ; preds = %forbody
-  %19 = load i32, i32* %i                         ; [#uses = 1]
-  %20 = add i32 %19, 1                            ; [#uses = 1]
-  store i32 %20, i32* %i
+  %21 = load i32, i32* %__key6                    ; [#uses = 1]
+  %22 = add i32 %21, 1                            ; [#uses = 1]
+  store i32 %22, i32* %__key6
   br label %forcond
 
 endfor:                                           ; preds = %forcond
