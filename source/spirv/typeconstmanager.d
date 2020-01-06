@@ -62,17 +62,20 @@ class TypeConstManager {
         this.capabilityManager = capabilityManager;
     }
 
-    Id requestType(Type type, StorageClass storage) {
+    Id requestType(Type type, StorageClass storage) 
+        in (type.kind == LLVMPointerTypeKind)
+    {
         auto name = type.name ~ storage.to!string;
         if (auto res = name in types) return *res;
         if (isVectorStruct(type)) return requestType(convertToVector(type));
-        enforce(type.kind == LLVMPointerTypeKind);
         return newType!(TypePointerInstruction)
             (name, storage,
              requestType(type.elementType));
     }
 
-    Id requestType(Type type) {
+    Id requestType(Type type) 
+        in (type.kind != LLVMPointerTypeKind)
+    {
         auto name = type.name;
         if (auto res = name in types) return *res;
         if (isVectorStruct(type)) return requestType(convertToVector(type));
@@ -211,12 +214,13 @@ class TypeConstManager {
         return id;
     }
 
+    enum vectorRegex = ctRegex!`Vector!\((.*), (\d+)\w*\)\.Vector(\.\d)?$`;
     private bool isVectorStruct(Type type) {
-        return type.name.matchAll(ctRegex!`^shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector$`).front.empty is false;
+        return type.name.matchAll(vectorRegex).front.empty is false;
     }
 
     private Type convertToVector(Type type) {
-        auto tmp = type.name.matchAll(ctRegex!`^shader\.builtin\.Vector!\((.*), (\d+)\w*\)\.Vector$`).array.front;
+        auto tmp = type.name.matchAll(vectorRegex).array.front;
         Type elementType = getType(tmp[1]);
         uint num = tmp[2].to!uint;
         return Type.getVectorType(elementType, num);

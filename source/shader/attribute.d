@@ -11,6 +11,10 @@ llvmAttr decoration(Decoration dc) {
     return llvmAttr("decoration", toString(dc));
 }
 
+llvmAttr builtin(BuiltIn b) {
+    return llvmAttr("decoration", toString(Decoration.BuiltIn) ~ b.stringof);
+}
+
 llvmAttr entryPoint(ExecutionModel model) {
     return llvmAttr("entryPoint", toString(model));
 }

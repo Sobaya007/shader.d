@@ -4,14 +4,25 @@ import core.simd;
 import std.traits : isInstanceOf;
 import std.meta : Repeat;
 import ldc.attributes;
-// import spirv.capabilitymanager;
-// import spirv.spv;
+import shader.attribute;
+import spirv.spv;
 
 llvmAttr operator(string name) {
     return llvmAttr("operator", name);
 }
 
 enum composite = llvmAttr("composite", "poyo");
+enum index = llvmAttr("index", "");
+
+@block
+struct gl_PerVertex {
+    @builtin(BuiltIn.Position) vec4 gl_Position;
+    float gl_PointSize;
+    float[1] gl_ClipDistance;
+    float[1] gl_CullDistance;
+}
+
+@output gl_PerVertex vertexOut;
 
 struct Vector(T, size_t N) {
     alias ElementType = T;
@@ -26,11 +37,14 @@ struct Vector(T, size_t N) {
     }
         
     void opOpAssign(string op)(Vector);
+
+    @index
+    T opIndex(size_t idx);
 }
 
-alias vec2 = Vector!(float, 2);
-alias vec3 = Vector!(float, 3);
-alias vec4 = float4;
+alias vec2 = Vector!(float,2);
+alias vec3 = Vector!(float,3);
+alias vec4 = Vector!(float,4);
 
 struct Matrix(T, size_t R, size_t C) {
     alias ElementType = T;
@@ -169,10 +183,10 @@ enum FS(T)   = __traits(isScalar, T) &&  __traits(isFloating, T);
 enum FS32(T) = __traits(isScalar, T) &&  is(T == float);
 enum SS(T)   = __traits(isScalar, T) && !__traits(isUnsigned, T) && __traits(isIntegral, T);
 enum US(T)   = __traits(isScalar, T) &&  __traits(isUnsigned, T) && __traits(isIntegral, T);
-enum FSV(T)   = FS!T   || is(T == __vector(E[N]), E, size_t N) && FS!E;
-enum SSV(T)   = SS!T   || is(T == __vector(E[N]), E, size_t N) && SS!E;
-enum USV(T)   = US!T   || is(T == __vector(E[N]), E, size_t N) && US!E;
-enum FSV32(T) = FS32!T || is(T == __vector(E[N]), E, size_t N) && FS32!E;
+enum FSV(T)   = FS!T   || is(T == Vector!(E, N), E, size_t N) && FS!E;
+enum SSV(T)   = SS!T   || is(T == Vector!(E, N), E, size_t N) && SS!E;
+enum USV(T)   = US!T   || is(T == Vector!(E, N), E, size_t N) && US!E;
+enum FSV32(T) = FS32!T || is(T == Vector!(E, N), E, size_t N) && FS32!E;
 enum ISV(T)   = SSV!(T) || USV!(T);
 enum Square(T) = isInstanceOf!(Matrix, T) && T.Row == T.Column;
 

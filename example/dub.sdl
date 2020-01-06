@@ -5,5 +5,5 @@ copyright "Copyright © 2019, sobaya"
 license "proprietary"
 
 dependency "sbylib:glfw" version="*"
-dependency "sbylib:vulkan" version="*"
+dependency "sbylib:vulkan" path="/home/sobaya/git/sbylib"
 dependency "spirv-d" path=".."

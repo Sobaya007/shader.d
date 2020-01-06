@@ -2,6 +2,7 @@ module spirv.compiler;
 
 import std;
 import llvm.mod;
+import llvm.func;
 import spirv.spirv;
 import spirv.spv;
 import core.thread;
@@ -30,15 +31,29 @@ class SpirvCompiler {
         auto spirv = new Spirv;
 
         foreach (var; mod.globals) {
-            if (var.firstUse is null) continue;
+            // if (var.firstUse is null) continue;
             spirv.addVariable(var);
+        }
+
+        Function[] enumerateAllUsers(Function f) {
+            Function[] result = f.uses.map!(u => u.user).array;
+            while (true) {
+                auto next = result.map!(f => f.uses.map!(u => u.user).array).join.sort!((a,b) => a.toString() < b.toString()).uniq.array;
+                if (next == result) break;
+                result = next;
+            }
+            return result;
+        }
+
+        bool hasEntryPoint(Function f) {
+            return f.attributes.canFind!(a => a.isString && a.kindAsString == "entryPoint");
         }
 
         foreach (func; mod.functions) {
             const hasExtend = func.attributes.canFind!(a => a.isString && a.kindAsString == "extend");
-            const hasEntryPoint = func.attributes.canFind!(a => a.isString && a.kindAsString == "entryPoint");
             if (hasExtend) continue;
-            if (func.firstUse is null && !hasEntryPoint) continue;
+            if (!hasEntryPoint(func) && enumerateAllUsers(func).all!(f => !hasEntryPoint(f))) continue;
+
             spirv.addFunction(func);
         }
 

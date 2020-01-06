@@ -164,4 +164,8 @@ struct Type {
     static Type getVectorType(Type elementType, uint elementCount) {
         return Type(LLVMVectorType(elementType.type, elementCount));
     }
+
+    static Type getPointerType(Type elementType, uint addressSpace = 0) {
+        return Type(LLVMPointerType(elementType.type, addressSpace));
+    }
 }

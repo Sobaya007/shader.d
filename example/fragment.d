@@ -12,5 +12,5 @@ extern(C):
 @entryPoint(ExecutionModel.Fragment)
 @execMode(ExecutionMode.OriginUpperLeft)
 void fragMain() {
-    color = vec4([1.0, 1.0, 1.0, 1.0]);
+    color = vec4(1.0, 1.0, 1.0, 1.0);
 }

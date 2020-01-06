@@ -409,6 +409,14 @@ struct Instruction {
         return LLVMIsAConstantDataVector(inst) !is null;
     }
 
+    bool isConstantArray() {
+        return LLVMIsAConstantArray(inst) !is null;
+    }
+
+    bool isConstantDataArray() {
+        return LLVMIsAConstantDataArray(inst) !is null;
+    }
+
     bool isDbgVariableIntrinsic() {
         return LLVMIsADbgVariableIntrinsic(inst) !is null;
     }

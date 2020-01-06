@@ -44,13 +44,16 @@ alias BodyInstruction = Algebraic!(BodyInstructions);
 
 class FunctionManager {
 
+    alias Key = Algebraic!(LLVMValueRef, uint);
+    alias Variable = Tuple!(Id, Key, Nullable!StorageClass);
+
     class Fn {
         FunctionInstruction decl;
         FunctionParameterInstruction[] ps;
         FunctionEndInstruction end;
         EntryPoint ep;
         Bk[] blocks;
-        Tuple!(Id, LLVMValueRef, Nullable!StorageClass)[] variables;
+        Variable[] variables;
     }
 
     class Bk {
@@ -298,8 +301,10 @@ body:           foreach (b; bk.bs) {
                 }
                 Id[] trueSuccessorSuccessors = [trueSuccessor], falseSuccessorSuccessors = [falseSuccessor];
                 while (true) {
-                    auto nextTrueSuccessorSuccessors  =  trueSuccessorSuccessors.map!(s => next(s)).join;
-                    auto nextFalseSuccessorSuccessors = falseSuccessorSuccessors.map!(s => next(s)).join;
+                    auto nextTrueSuccessorSuccessors  =  (trueSuccessorSuccessors ~  trueSuccessorSuccessors.map!(s => next(s)).join).sort.uniq.array;
+                    auto nextFalseSuccessorSuccessors = (falseSuccessorSuccessors ~ falseSuccessorSuccessors.map!(s => next(s)).join).sort.uniq.array;
+                    scope (exit) trueSuccessorSuccessors = nextTrueSuccessorSuccessors;
+                    scope (exit) falseSuccessorSuccessors = nextFalseSuccessorSuccessors;
                     if (trueSuccessorSuccessors == nextTrueSuccessorSuccessors && falseSuccessorSuccessors == nextFalseSuccessorSuccessors) break;
                     auto common = trueSuccessorSuccessors.filter!(s => falseSuccessorSuccessors.canFind(s));
                     if (common.empty) continue;
@@ -336,14 +341,10 @@ body:           foreach (b; bk.bs) {
             enforce(Instruction(i.operands[1].op).zExtValue == 0);
             enforce(Instruction(i.operands[0].op).type.kind == LLVMPointerTypeKind);
             auto base = requestVar(bk, i.operands[0]);
-            auto storage = globalVarManager.getStorageClass(base);
-            if (storage.isNull) {
-                storage = bk.parent.variables
-                    .find!(v => v[0] == base)
-                    .front[2];
-            }
-            auto type = typeConstManager.requestType(i.type, storage.isNull ? StorageClass.Function : storage.get());
-            auto id = requestId(bk, i, storage.get());
+            auto st = getStorageClass(bk, base);
+            auto storage = st.isNull ? StorageClass.Function : st.get();
+            auto type = typeConstManager.requestType(i.type, storage);
+            auto id = requestId(bk, i, storage);
             auto indexes = i.operands[2..$].map!(op => requestVar(bk, op)).array;
             add(bk, AccessChainInstruction(type, id, base, indexes));
         } else if (i.isExtractElementInst) {
@@ -357,7 +358,7 @@ body:           foreach (b; bk.bs) {
             enforce(false);
         } else if (i.isIntrinsicInst) {
             //TODO: not implemneted yet.
-            enforce(false);
+            // enforce(false, i.toString());
         } else if (i.isCallInst) {
             auto binaryOps = getAttribute!BinaryOps(i.calledFunction, "operator");
             if (binaryOps.empty is false) {
@@ -391,6 +392,24 @@ body:           foreach (b; bk.bs) {
                 add(bk, CompositeConstructInstruction(type, id, args));
                 add(bk, StoreInstruction(requestVar(bk, i.argOperand(0)), id));
             }
+
+            auto index = getAttribute!string(i.calledFunction, "index");
+            if (index.empty is false) {
+                enforce(i.numArgOperands == 2, i.numArgOperands.to!string);
+                auto base = requestVar(bk, i.argOperand(0));
+                auto idx = requestVar(bk, i.argOperand(1));
+
+                auto storage = getStorageClass(bk, base);
+
+                auto resultID = requestId(bk, i);
+                auto tmpID = requestId(bk, storage);
+
+                auto resultType = requestType(i.calledFunction.type.elementType.returnType);
+                auto tmpType = requestType(Type.getPointerType(i.calledFunction.type.elementType.returnType), storage);
+
+                add(bk, AccessChainInstruction(tmpType, tmpID, base, [idx]));
+                add(bk, LoadInstruction(resultType, resultID, tmpID));
+            }
             //TODO: not implemneted yet.
         } else {
             assert(false);
@@ -423,7 +442,12 @@ body:           foreach (b; bk.bs) {
             return requestConstant(op);
         }
         enforce(bk.parent.variables.canFind!(p => p[1] == op.op),
-            format!"\nRequested: %s\nCandidates are:%s"(op, bk.parent.variables.map!(o => Operand(cast(LLVMValueRef)(o[1])).to!string).array.join("\n")));
+            format!"\nRequested: %s\nCandidates are:%s"(op,
+                bk.parent.variables
+                .map!(o => o[1].peek!(LLVMValueRef))
+                .filter!(v => v !is null)
+                .map!(v => Operand(cast(LLVMValueRef)(v)).to!string)
+                .array.join("\n")));
         return bk.parent.variables.find!(p => p[1] == op.op).front[0];
     }
 
@@ -437,11 +461,20 @@ body:           foreach (b; bk.bs) {
 
     private Id requestId(Bk bk, Instruction i, Nullable!StorageClass st) {
         auto id = idManager.requestId();
-        bk.parent.variables ~= tuple(id, i.inst, st);
+        bk.parent.variables ~= tuple(id, Key(i.inst), st);
         return id;
     }
 
-    private Id requestConstant(Operand op) {
+    private Id requestId(Bk bk, Nullable!StorageClass st) {
+        static uint seed = 0;
+        auto id = idManager.requestId();
+        bk.parent.variables ~= tuple(id, Key(seed++), st);
+        return id;
+    }
+
+    private Id requestConstant(Operand op) 
+        in (op.isConstant)
+    {
         auto i = Instruction(op.op);
         auto type = requestType(i.type);
         if (i.isConstantInt) {
@@ -465,13 +498,16 @@ body:           foreach (b; bk.bs) {
         } else if (i.isConstantDataVector) {
             auto components = iota(i.type.lengthAsVector).map!(j => requestConstant(i.elementAsConstant(j))).array;
             return typeConstManager.requestComponentConstant(type, components);
+        } else if (i.isConstantArray || i.isConstantDataArray) { // TODO: ????
+            auto components = iota(i.type.lengthAsArray).map!(j => requestConstant(i.elementAsConstant(j))).array;
+            return typeConstManager.requestComponentConstant(type, components);
         }
         assert(false);
     }
 
-    private Id requestType(Type type) {
+    private Id requestType(Type type, Nullable!StorageClass storage = Nullable!StorageClass.init) {
         if (type.kind == LLVMPointerTypeKind) {
-            return typeConstManager.requestType(type, StorageClass.Function);
+            return typeConstManager.requestType(type, storage.isNull ? StorageClass.Function : storage.get());
         } else {
             return typeConstManager.requestType(type);
         }
@@ -484,5 +520,15 @@ body:           foreach (b; bk.bs) {
             .map!(a => a.valueAsString)
             .map!(to!T)
             .array;
+    }
+
+    private Nullable!StorageClass getStorageClass(Bk bk, Id base) {
+        auto st = globalVarManager.getStorageClass(base);
+        if (st.isNull) {
+            st = bk.parent.variables
+                .find!(v => v[0] == base)
+                .front[2];
+        }
+        return st;
     }
 }

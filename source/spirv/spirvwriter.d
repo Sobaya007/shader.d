@@ -10,13 +10,8 @@ class SpirvWriter {
     private enum Version = 0x00010000;
     private enum GeneratorMagicNumber = 114514;
 
-    private Writer writer;
-
-    this() {
-        this.writer = new Writer;
-    }
-
     ubyte[] write(const Spirv spirv) {
+        auto writer = new Writer;
         with (writer) {
             writeWord(MagicNumber);
             writeWord(Version);

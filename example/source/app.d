@@ -124,12 +124,15 @@ void main() {
        今回はSwapchainのExtensionのみ有効化する。
        ついでに先程選んだQueue FamilyでQueueを1つ作っておく。
      */
+    VkPhysicalDeviceFeatures features;
+    features.shaderInt64 = true;
     Device.DeviceCreateInfo deviceCreateInfo = {
         queueCreateInfos: [{
             queuePriorities: [0.0f],
             queueFamilyIndex: graphicsQueueFamilyIndex,
         }],
-        enabledExtensionNames: ["VK_KHR_swapchain"]
+        enabledExtensionNames: ["VK_KHR_swapchain"],
+        pEnabledFeatures: &features,
     };
     auto device = new Device(gpu, deviceCreateInfo);
     scope (exit)
@@ -393,7 +396,7 @@ void main() {
        Shader Module作成
      */
 
-    compileShader("test.vert");
+    writer.write("vert.spv", compiler.compile("vertex.d"));
     // scope (exit) fremove("vert.spv");
 
     writer.write("frag.spv", compiler.compile("fragment.d"));

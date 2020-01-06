@@ -31,11 +31,11 @@ struct BlockName {
 @entryPoint(ExecutionModel.Fragment)
 @execMode(ExecutionMode.OriginLowerLeft)
 void fragMain() {
-    vec4 scale = vec4([1.0, 1.0, 2.0, 1.0]);
+    vec4 scale = vec4(1.0, 1.0, 2.0, 1.0);
     if (blockName.cond)
         color = color1 + blockName.s.v[2];
-    else
-        color = sqrt(color2) * scale;
-    foreach (i; 0..4)
-        color *= multiplier;
+    // else
+    //     color = sqrt(color2) * scale;
+    // foreach (i; 0..4)
+    //     color *= multiplier;
 }

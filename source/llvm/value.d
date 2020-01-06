@@ -5,6 +5,7 @@ mixin template ImplValue(alias mem) {
     import llvm.attr;
     import llvm.type;
     import llvm.operand;
+    import llvm.use;
 
     string name() {
         size_t len;
@@ -28,9 +29,16 @@ mixin template ImplValue(alias mem) {
         }
         return res;
     }
-    
-    LLVMUseRef firstUse() {
-        return LLVMGetFirstUse(mem);
+
+    auto uses() {
+        struct Result {
+            private Nullable!Use use;
+            Use front() { return use.get(); }
+            void popFront() { use = use.get().next(); }
+            bool empty() { return use.isNull; }
+        }
+        auto firstUse = LLVMGetFirstUse(mem);
+        return Result(firstUse ? Use(firstUse).nullable : Nullable!Use.init);
     }
 
     bool isConstant() {
