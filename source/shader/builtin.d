@@ -28,6 +28,8 @@ struct Vector(T, size_t N) {
     alias ElementType = T;
     enum Size = N;
 
+    Repeat!(N,T) tmp;
+
     @composite
     this(Repeat!(N,T));
 
